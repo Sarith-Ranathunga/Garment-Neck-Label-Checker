@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 930" width="1180" height="930">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0.5 L8.5,4.5 L0,8.5 z" fill="#000"/>
+    </marker>
+    <marker id="ah2" markerWidth="9" markerHeight="9" refX="1" refY="4.5" orient="auto">
+      <path d="M8.5,0.5 L0,4.5 L8.5,8.5 z" fill="#000"/>
+    </marker>
+    <style>
+      .t    { font-family:"Times New Roman",Times,serif; fill:#000; }
+      .tier { font-size:20px; font-weight:bold; }
+      .box  { fill:#F2F2F2; stroke:#000; stroke-width:1.6; }
+      .in   { fill:#FFFFFF; stroke:#000; stroke-width:1.1; }
+      .hdr  { fill:#D9D9D9; stroke:#000; stroke-width:1.6; }
+      .lbl  { font-size:18px; }
+      .sm   { font-size:16px; }
+      .it   { font-size:16px; font-style:italic; }
+      .ln   { stroke:#000; stroke-width:1.7; fill:none; }
+      .dash { stroke:#000; stroke-width:1.5; fill:none; stroke-dasharray:7,5; }
+      .bnd  { fill:none; stroke:#000; stroke-width:1.3; stroke-dasharray:3,4; }
+    </style>
+  </defs>
+  <rect x="0" y="0" width="1180" height="930" fill="#FFFFFF"/>
+
+  <!-- boundary: inside the factory -->
+  <rect class="bnd" x="18" y="18" width="1144" height="800" rx="6"/>
+  <text class="t it" x="32" y="44">Inside the packing department — no internet required</text>
+
+  <!-- ================= TIER 1 : Android ================= -->
+  <rect class="hdr" x="60" y="74" width="430" height="44"/>
+  <text class="t tier" x="275" y="104" text-anchor="middle">TIER 1 · Android client</text>
+  <rect class="box" x="60" y="118" width="430" height="246"/>
+  <text class="t sm" x="80" y="150">Worker-class Android phone — the only scanning device</text>
+  <rect class="in" x="80" y="166" width="190" height="38"/>
+  <text class="t sm" x="175" y="190" text-anchor="middle">Camera capture</text>
+  <rect class="in" x="282" y="166" width="190" height="38"/>
+  <text class="t sm" x="377" y="190" text-anchor="middle">Barcode decode</text>
+  <rect class="in" x="80" y="212" width="190" height="38"/>
+  <text class="t sm" x="175" y="236" text-anchor="middle">Crop · compress</text>
+  <rect class="in" x="282" y="212" width="190" height="38"/>
+  <text class="t sm" x="377" y="236" text-anchor="middle">Checklist context</text>
+  <rect class="in" x="80" y="258" width="190" height="38"/>
+  <text class="t sm" x="175" y="282" text-anchor="middle">Verdict display</text>
+  <rect class="in" x="282" y="258" width="190" height="38"/>
+  <text class="t sm" x="377" y="282" text-anchor="middle">Manual fallback</text>
+  <rect class="in" x="80" y="304" width="392" height="40"/>
+  <text class="t sm" x="276" y="329" text-anchor="middle">Offline queue — scan stored locally before any send</text>
+
+  <!-- arrows between tier 1 and tier 2 -->
+  <line class="ln" x1="500" y1="196" x2="630" y2="196" marker-end="url(#ah)"/>
+  <text class="t sm" x="565" y="182" text-anchor="middle">image +</text>
+  <text class="t sm" x="565" y="216" text-anchor="middle">active size set</text>
+  <line class="ln" x1="630" y1="286" x2="500" y2="286" marker-end="url(#ah)"/>
+  <text class="t sm" x="565" y="272" text-anchor="middle">verdict</text>
+  <text class="t sm" x="488" y="306" text-anchor="middle">match / mismatch / no read</text>
+  <text class="t it" x="565" y="400" text-anchor="middle">existing factory WiFi</text>
+
+  <!-- ================= TIER 2 : service ================= -->
+  <rect class="hdr" x="640" y="74" width="470" height="44"/>
+  <text class="t tier" x="875" y="104" text-anchor="middle">TIER 2 · Recognition &amp; verification</text>
+  <rect class="box" x="640" y="118" width="470" height="246"/>
+  <text class="t sm" x="660" y="150">FastAPI service on an existing supervisor PC</text>
+  <rect class="in" x="660" y="166" width="210" height="38"/>
+  <text class="t sm" x="765" y="190" text-anchor="middle">EasyOCR recognition</text>
+  <rect class="in" x="882" y="166" width="208" height="38"/>
+  <text class="t sm" x="986" y="190" text-anchor="middle">Four-rotation retry</text>
+  <rect class="in" x="660" y="212" width="210" height="38"/>
+  <text class="t sm" x="765" y="236" text-anchor="middle">Constrained parse</text>
+  <rect class="in" x="882" y="212" width="208" height="38"/>
+  <text class="t sm" x="986" y="236" text-anchor="middle">Size code map</text>
+  <rect class="in" x="660" y="258" width="210" height="38"/>
+  <text class="t sm" x="765" y="282" text-anchor="middle">Comparison</text>
+  <rect class="in" x="882" y="258" width="208" height="38"/>
+  <text class="t sm" x="986" y="282" text-anchor="middle">Reconciliation</text>
+  <rect class="in" x="660" y="304" width="430" height="40"/>
+  <text class="t sm" x="875" y="329" text-anchor="middle">Excel export per shipment · USB backup every 15 minutes</text>
+
+  <!-- tier 2 to tier 3 -->
+  <line class="ln" x1="875" y1="364" x2="875" y2="432" marker-end="url(#ah)"/>
+  <line class="ln" x1="905" y1="432" x2="905" y2="364" marker-end="url(#ah)"/>
+
+  <!-- ================= TIER 3 : data ================= -->
+  <rect class="hdr" x="640" y="432" width="470" height="44"/>
+  <text class="t tier" x="875" y="462" text-anchor="middle">TIER 3 · Data store</text>
+  <rect class="box" x="640" y="476" width="470" height="150"/>
+  <text class="t sm" x="660" y="508">PostgreSQL — same machine</text>
+  <rect class="in" x="660" y="524" width="210" height="36"/>
+  <text class="t sm" x="765" y="547" text-anchor="middle">Orders · shipments</text>
+  <rect class="in" x="882" y="524" width="208" height="36"/>
+  <text class="t sm" x="986" y="547" text-anchor="middle">Scans · verdicts</text>
+  <rect class="in" x="660" y="568" width="210" height="36"/>
+  <text class="t sm" x="765" y="591" text-anchor="middle">Cartons · packing list</text>
+  <rect class="in" x="882" y="568" width="208" height="36"/>
+  <text class="t sm" x="986" y="591" text-anchor="middle">Exceptions · logs</text>
+
+  <!-- supervisor UI -->
+  <rect class="hdr" x="60" y="432" width="430" height="44"/>
+  <text class="t tier" x="275" y="462" text-anchor="middle">Supervisor web interface</text>
+  <rect class="box" x="60" y="476" width="430" height="150"/>
+  <text class="t sm" x="80" y="508">Browser on the supervisor PC — monitoring only, no scanning</text>
+  <rect class="in" x="80" y="524" width="190" height="36"/>
+  <text class="t sm" x="175" y="547" text-anchor="middle">Per-stage counts</text>
+  <rect class="in" x="282" y="524" width="190" height="36"/>
+  <text class="t sm" x="377" y="547" text-anchor="middle">Mismatch log</text>
+  <rect class="in" x="80" y="568" width="190" height="36"/>
+  <text class="t sm" x="175" y="591" text-anchor="middle">Count divergence</text>
+  <rect class="in" x="282" y="568" width="190" height="36"/>
+  <text class="t sm" x="377" y="591" text-anchor="middle">Packing list</text>
+  <line class="ln" x1="500" y1="551" x2="630" y2="551" marker-end="url(#ah)"/>
+  <text class="t sm" x="565" y="540" text-anchor="middle">reads</text>
+
+  <!-- manager entry -->
+  <rect class="box" x="60" y="668" width="430" height="110"/>
+  <text class="t lbl" x="275" y="700" text-anchor="middle" font-weight="bold">Manager — shipment setup</text>
+  <text class="t sm" x="275" y="726" text-anchor="middle">Buyer · size code map · PO · shipment · size allocation</text>
+  <text class="t it" x="275" y="752" text-anchor="middle">allocation total validated against the declared total</text>
+  <line class="ln" x1="490" y1="716" x2="640" y2="620" marker-end="url(#ah)"/>
+
+  <!-- USB -->
+  <rect class="box" x="640" y="668" width="470" height="110"/>
+  <text class="t lbl" x="875" y="700" text-anchor="middle" font-weight="bold">Encrypted USB drive</text>
+  <text class="t sm" x="875" y="726" text-anchor="middle">Database dump every 15 minutes · generations retained</text>
+  <text class="t it" x="875" y="752" text-anchor="middle">restore to a replacement PC in about one hour</text>
+  <line class="dash" x1="875" y1="626" x2="875" y2="664" marker-end="url(#ah)"/>
+
+  <!-- footer note -->
+  <text class="t it" x="590" y="856" text-anchor="middle">Barcode is decoded on the device; only the neck-label image goes to the service.</text>
+  <text class="t it" x="590" y="884" text-anchor="middle">The artefact is a job aid: if any tier is unavailable, the existing manual process continues unchanged.</text>
+</svg>

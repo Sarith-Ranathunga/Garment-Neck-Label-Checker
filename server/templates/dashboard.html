@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% set nav = 'shipments' %}
+{% block title %}{{ ship.reference }}{% endblock %}
+
+{% block head %}
+{#
+  A monitoring screen that is silently stale is worse than no screen, so it
+  reloads itself and prints the time it was generated in the footer. Sixty
+  seconds, not five: packing is a human-paced process and a screen that
+  flickers while someone is reading the mismatch log is harder to use.
+#}
+<meta http-equiv="refresh" content="60">
+{% endblock %}
+
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>{{ ship.reference }}</h1>
+    <p class="sub">
+      {{ ship.buyer_name }} ({{ ship.buyer_code }}) &middot;
+      PO {{ ship.po_number }} &middot; ships {{ ship.ship_date }} &middot;
+      {{ ship.declared_qty | n }} declared &middot;
+      {% if ship.status == 'active' %}<span class="pill ok">active</span>
+      {% elif ship.status == 'draft' %}<span class="pill warn">draft</span>
+      {% else %}<span class="pill idle">closed</span>{% endif %}
+    </p>
+  </div>
+  <div class="spacer btn-row">
+    <a class="btn ghost" href="/ui/shipment/{{ ship.id }}/checklists">
+      Checklists{% if checklist_count %} ({{ checklist_count }}){% endif %}</a>
+    <form method="post" action="/ui/shipment/{{ ship.id }}/packing-list">
+      <button class="btn" type="submit">Generate packing list</button>
+    </form>
+    <form method="post" action="/ui/shipment/{{ ship.id }}/export">
+      <button class="btn quiet" type="submit">Export workbook</button>
+    </form>
+  </div>
+</div>
+
+{% if request.query_params.get('done') == 'packing-list' %}
+  <div class="note ok"><strong>Packing list generated</strong> into the
+    export folder on this PC, style-wise, in the buyer&rsquo;s own size
+    notation.</div>
+{% elif request.query_params.get('done') == 'export' %}
+  <div class="note ok"><strong>Workbook exported</strong> &mdash; eight sheets,
+    into the export folder on this PC.</div>
+{% endif %}
+
+{% if ship.status == 'draft' %}
+  <div class="note warn">
+    This shipment is <strong>draft</strong>: its size allocation does not yet
+    balance against the {{ ship.declared_qty | n }} declared, so it cannot be
+    scanned. <a href="/ui/setup?shipment_id={{ ship.id }}">Enter the
+    allocation</a>.
+  </div>
+{% endif %}
+
+{# ============================================================== tiles === #}
+<div class="tiles">
+  <div class="tile">
+    <div class="k">Allocated</div>
+    <div class="v">{{ totals.allocated | n }}</div>
+    <div class="f">of {{ ship.declared_qty | n }} declared</div>
+  </div>
+  <div class="tile">
+    <div class="k">Stage 1 established</div>
+    <div class="v">{{ totals.stage1_verified | n }}</div>
+    <div class="f">first segregation</div>
+  </div>
+  <div class="tile">
+    <div class="k">Stage 5 verified</div>
+    <div class="v">{{ totals.stage5_verified | n }}</div>
+    <div class="f">checked against hangtag</div>
+  </div>
+  <div class="tile">
+    <div class="k">Stage 6 packed</div>
+    <div class="v">{{ totals.stage6_packed | n }}</div>
+    <div class="f">{{ cartons | length }} cartons</div>
+  </div>
+  <div class="tile {{ 'bad' if unresolved else 'ok' }}">
+    <div class="k">Open mismatches</div>
+    <div class="v">{{ unresolved | n }}</div>
+    <div class="f">{{ mismatches | length }} detected in total</div>
+  </div>
+</div>
+
+{# =================================================== reconciliation === #}
+<div class="card tight">
+  <h2>Four-point reconciliation
+    <span class="h2-note">allocation &rarr; stage 1 &rarr; stage 5 &rarr; stage 6</span>
+  </h2>
+  {% if not recon %}
+    <div class="empty">Nothing allocated or scanned yet.</div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Size</th>
+        <th class="num">Allocated</th>
+        <th class="num">Stage 1</th>
+        <th class="num">&Delta;</th>
+        <th class="num">Stage 5</th>
+        <th class="num">&Delta;</th>
+        <th class="num">Stage 6</th>
+        <th class="num">&Delta;</th>
+      </tr>
+    </thead>
+    <tbody>
+      {#
+        The deltas are the point of this table, not decoration. O3 claims a
+        divergence is attributable to the stage where it occurred, and a
+        non-zero delta is that attribution: it names the handover that lost
+        or gained the garments. Four raw counts would leave the reader doing
+        the subtraction.
+      #}
+      {% for r in recon %}
+      <tr>
+        <td class="sz">{{ r.size }}</td>
+        <td class="num">{{ r.allocated | n }}</td>
+        <td class="num">{{ r.stage1_verified | n }}</td>
+        <td class="num {{ 'd0' if r.d1 == 0 else ('dn' if r.d1 < 0 else 'dp') }}">{{ r.d1 | delta }}</td>
+        <td class="num">{{ r.stage5_verified | n }}</td>
+        <td class="num {{ 'd0' if r.d5 == 0 else ('dn' if r.d5 < 0 else 'dp') }}">{{ r.d5 | delta }}</td>
+        <td class="num">{{ r.stage6_packed | n }}</td>
+        <td class="num {{ 'd0' if r.d6 == 0 else ('dn' if r.d6 < 0 else 'dp') }}">{{ r.d6 | delta }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>Total</td>
+        <td class="num">{{ totals.allocated | n }}</td>
+        <td class="num">{{ totals.stage1_verified | n }}</td>
+        <td class="num {{ 'd0' if totals.d1 == 0 else ('dn' if totals.d1 < 0 else 'dp') }}">{{ totals.d1 | delta }}</td>
+        <td class="num">{{ totals.stage5_verified | n }}</td>
+        <td class="num {{ 'd0' if totals.d5 == 0 else ('dn' if totals.d5 < 0 else 'dp') }}">{{ totals.d5 | delta }}</td>
+        <td class="num">{{ totals.stage6_packed | n }}</td>
+        <td class="num {{ 'd0' if totals.d6 == 0 else ('dn' if totals.d6 < 0 else 'dp') }}">{{ totals.d6 | delta }}</td>
+      </tr>
+    </tfoot>
+  </table>
+  {% endif %}
+  <p class="card-note" style="padding:0 20px 18px">
+    A negative delta means garments did not arrive at the next stage; a
+    positive one means more were counted than were handed over. Either
+    localises the divergence to one handover, which is what the existing
+    manual reconciliation cannot do &mdash; it records that a defect exists,
+    not where it originated.
+  </p>
+</div>
+
+<div class="grid two">
+  {# ================================================= verdicts by stage === #}
+  <div class="card tight">
+    <h2>Verdicts by stage</h2>
+    {% if not stages %}
+      <div class="empty">No scans yet.</div>
+    {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>Stage</th><th class="num">Scans</th><th class="num">Match</th>
+          <th class="num">Mismatch</th><th class="num">No read</th>
+          <th class="num">Wrong garment</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in stages %}
+        <tr>
+          <td><strong>{{ s.stage }}</strong>
+            <div class="f" style="font-size:12px;color:var(--muted)">
+              {% if s.stage == 'S1' %}established
+              {% elif s.stage == 'S5' %}verified
+              {% else %}carton{% endif %}</div>
+          </td>
+          <td class="num">{{ s.total | n }}</td>
+          <td class="num" style="color:var(--ok)">{{ s.match | n }}</td>
+          <td class="num {{ 'dn' if s.mismatch }}">{{ s.mismatch | n }}</td>
+          <td class="num {{ 'dp' if s.no_read }}">{{ s.no_read | n }}</td>
+          <td class="num">{{ s.out_of_context | n }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <p class="card-note" style="padding:0 20px 18px">
+      Stage 1 <strong>establishes</strong> a size &mdash; no hangtag exists
+      yet, so nothing is compared and a match there is not evidence about O2.
+      Stage 5 <strong>verifies</strong> one against the hangtag. The two are
+      never added together.
+    </p>
+  </div>
+
+  {# ========================================================= queue === #}
+  <div class="card">
+    <h2>Detected, but detected late</h2>
+    {% if not late or not late.queued %}
+      <div class="note ok" style="margin:0">
+        <strong>Every scan reached the host immediately.</strong>
+        No garment was packed before its verdict existed.
+      </div>
+    {% else %}
+      <div class="tiles" style="margin:0 0 14px">
+        <div class="tile warn">
+          <div class="k">Queued scans</div>
+          <div class="v">{{ late.queued | n }}</div>
+          <div class="f">verdict arrived after packing</div>
+        </div>
+        <div class="tile {{ 'bad' if late.late_mismatch else '' }}">
+          <div class="k">Late mismatches</div>
+          <div class="v">{{ late.late_mismatch | n }}</div>
+          <div class="f">cartons may need reopening</div>
+        </div>
+        <div class="tile">
+          <div class="k">Mean delay</div>
+          <div class="v">{{ late.mean_delay_s or '—' }}<span
+            style="font-size:15px;color:var(--muted)">{% if late.mean_delay_s %} s{% endif %}</span></div>
+          <div class="f">queued to synced</div>
+        </div>
+      </div>
+      <p class="card-note" style="margin:0">
+        These errors <em>were</em> caught. They were caught after the operator
+        had already packed the garment, because the phone had no network at
+        the time and held the scan in its own queue. An escape prevented and
+        an escape found afterwards are different outcomes for the shipment, so
+        they are counted separately rather than folded into the detection rate.
+      </p>
+    {% endif %}
+  </div>
+</div>
+
+{# ================================================== mismatch log === #}
+<div class="card tight">
+  <h2>Mismatch log
+    <span class="h2-note">{{ unresolved }} open of {{ mismatches | length }}</span>
+  </h2>
+  {% if not mismatches %}
+    <div class="empty">No mismatches detected on this shipment.</div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Detected</th><th>Stage</th><th>Operator</th>
+        <th>Neck label</th><th>Hangtag</th><th>Carton</th>
+        <th>Resolution</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in mismatches %}
+      <tr>
+        <td class="mono">{{ m.detected_at.strftime('%d %b %H:%M') }}</td>
+        <td>{{ m.stage }}</td>
+        <td>{{ m.operator }}</td>
+        <td><span class="pill bad">{{ m.neck_size or '—' }}</span></td>
+        <td><span class="pill brand">{{ m.hangtag_size or '—' }}</span></td>
+        <td>
+          {% if m.carton_no %}
+            {{ m.carton_no }}
+            {% if m.carton_closed_at %}<span class="pill warn">closed</span>{% endif %}
+          {% else %}<span class="d0">&mdash;</span>{% endif %}
+        </td>
+        <td>
+          {% if m.resolved_at %}
+            <span class="pill ok">resolved</span>
+            {% if m.resolution_note %}
+              <div style="font-size:13px;color:var(--muted);margin-top:3px">
+                {{ m.resolution_note }}</div>
+            {% endif %}
+          {% else %}
+            {#
+              The note is a free text field rather than a status flag because
+              the useful question afterwards is not whether it was resolved
+              but what was found. "Correct garment, system was wrong" is a
+              false positive and belongs in the O2 figure; a boolean loses it.
+            #}
+            <form method="post" action="/ui/mismatch/{{ m.id }}/resolve"
+                  class="btn-row">
+              <input type="hidden" name="shipment_id" value="{{ ship.id }}">
+              <input type="text" name="note" placeholder="What was found?"
+                     style="max-width:230px;font-size:14px;padding:6px 9px">
+              <button class="btn small quiet" type="submit">Resolve</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+{# ========================================================= cartons === #}
+<div class="card tight">
+  <h2>Cartons
+    <span class="h2-note">contents derived from scans, not typed in</span>
+  </h2>
+  {% if not cartons %}
+    <div class="empty">No cartons opened yet.</div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Carton</th><th>Opened by</th><th>Opened</th>
+        <th class="num">Packed</th><th class="num">Net kg</th>
+        <th class="num">Gross kg</th><th>State</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in cartons %}
+      <tr>
+        <td><strong>{{ c.carton_no }}</strong></td>
+        <td>{{ c.opened_by }}</td>
+        <td class="mono">{{ c.opened_at.strftime('%d %b %H:%M') }}</td>
+        <td class="num">{{ c.packed | n }}</td>
+        {#
+          Weights are read off a floor scale and declared by the operator, not
+          captured by the artefact. A blank is the honest display: §4.8 records
+          this as a field-map gap against the buyer's packing list and O3
+          reports it as such, rather than it being filled with a plausible
+          figure.
+        #}
+        <td class="num">{{ c.net_weight_kg or '—' }}</td>
+        <td class="num">{{ c.gross_weight_kg or '—' }}</td>
+        <td>
+          {% if c.closed_at %}<span class="pill idle">closed</span>
+          {% else %}<span class="pill ok">open</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+{% if ship.status == 'active' %}
+<div class="card">
+  <h2>Close the shipment</h2>
+  <p class="card-note" style="margin:0 0 12px">
+    Closing stops further scanning. Generate the packing list first.
+  </p>
+  <form method="post" action="/ui/shipment/{{ ship.id }}/close">
+    <button class="btn danger" type="submit">Close {{ ship.reference }}</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

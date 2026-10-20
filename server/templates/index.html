@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Garment Neck Label Checker</title>
+  <style>
+    :root { --ink:#1a1a1a; --muted:#666; --line:#ddd; --bg:#fafafa; --ok:#2e7d32; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:32px 16px; background:var(--bg); color:var(--ink);
+           font:16px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+    .wrap { max-width:720px; margin:0 auto; }
+    h1 { font-size:22px; margin:0 0 4px; }
+    .sub { color:var(--muted); margin:0 0 28px; font-size:14px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:8px;
+            padding:18px 20px; margin-bottom:14px; }
+    .card h2 { font-size:15px; margin:0 0 10px; text-transform:uppercase;
+               letter-spacing:.04em; color:var(--muted); }
+    a { color:#1565c0; }
+    .status { display:inline-block; padding:3px 10px; border-radius:99px;
+              background:#e8f5e9; color:var(--ok); font-size:13px; font-weight:600; }
+    ul { margin:8px 0 0; padding-left:20px; }
+    li { margin:4px 0; }
+    code { background:#f1f1f1; padding:1px 5px; border-radius:3px; font-size:14px; }
+    footer { color:var(--muted); font-size:13px; margin-top:24px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Garment Neck Label Checker</h1>
+    <p class="sub">Neck-label verification for apparel packing departments &middot; GNLC</p>
+
+    <div class="card">
+      <h2>Service</h2>
+      <p><span class="status">running</span></p>
+      <p style="margin-bottom:0">If you can read this page, the server started and
+         the phones on this network should be able to reach it.</p>
+    </div>
+
+    <div class="card">
+      <h2>Supervisor interface</h2>
+      <p style="margin:0 0 10px">
+        <a href="/ui" style="font-weight:600;font-size:17px">Open the
+        supervisor interface &rarr;</a>
+      </p>
+      <p style="margin:0;color:var(--muted);font-size:14px">
+        Shipments, the four-point reconciliation, the mismatch log, carton
+        state, and the evaluation figures. Monitoring and setup only &mdash;
+        nothing here scans.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Check it works</h2>
+      <ul>
+        <li><a href="/health">/health</a> &mdash; database connection</li>
+        <li><a href="/docs">/docs</a> &mdash; full API, with a Try it out button</li>
+        <li><a href="/api/shipment/1/reconciliation">/api/shipment/1/reconciliation</a>
+            &mdash; the four-point check</li>
+        <li><a href="/api/shipment/1/flow">/api/shipment/1/flow</a>
+            &mdash; packing-flow monitoring</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Before the phones can connect</h2>
+      <ul>
+        <li>This PC needs a <strong>fixed IP address</strong> on the factory network.</li>
+        <li><strong>Windows Firewall</strong> must allow inbound traffic on port 8000.</li>
+        <li>Put that IP into the app&rsquo;s settings screen, not into the code.</li>
+      </ul>
+    </div>
+
+    <footer>
+      S. J. Ranathunga &middot; COBSCCOMP242P-011 &middot;
+      NIBM School of Computing &amp; Engineering
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% set nav = 'shipments' %}
+{% block title %}Checklists &mdash; {{ ship.reference }}{% endblock %}
+
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>Checklists &mdash; {{ ship.reference }}</h1>
+    <p class="sub">What the operators can select on their phones.</p>
+  </div>
+  <div class="spacer btn-row">
+    <a class="btn quiet" href="/ui/shipment/{{ ship.id }}">Back to dashboard</a>
+  </div>
+</div>
+
+{#
+  Checklist creation is the supervisor's job and not the scanning worker's.
+  The supervisor inspects every incoming set, is not under per-garment
+  throughput pressure, and holds accountability for the declaration — so the
+  risk of a wrong declaration is reduced by WHO is allowed to make it, which
+  is an organisational control rather than a technical one.
+
+  Style and colour are declared here, not read from the garment. The neck
+  label carries size only. An incorrect declaration is therefore possible, and
+  is DETECTED at stage 5 when the hangtag's style and colour are compared
+  against the declared context — detection is deferred, not absent.
+#}
+<div class="note">
+  Style and colour are <strong>declared</strong> here, not read from the
+  garment &mdash; the neck label carries size only. A wrong declaration is
+  detected at stage 5, when the hangtag is compared against this context, so
+  detection is deferred rather than absent.
+</div>
+
+<div class="card tight">
+  <h2>Checklists on this shipment</h2>
+  {% if not checklists %}
+    <div class="empty">
+      None open. Operators will see an empty list on their phones until one is
+      opened below.
+    </div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Stage</th><th>Style</th><th>Colour</th><th>Opened by</th>
+        <th>Opened</th><th class="num">Scans</th><th>State</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in checklists %}
+      <tr>
+        <td>
+          <strong>{{ c.stage }}</strong>
+          <div style="font-size:12px;color:var(--muted)">
+            {% if c.stage == 'S1' %}first segregation
+            {% elif c.stage == 'S5' %}hangtag check
+            {% else %}carton packing{% endif %}
+          </div>
+        </td>
+        <td>{{ c.style_no }}</td>
+        <td>{{ c.colour }}</td>
+        <td>{{ c.opened_by }}</td>
+        <td class="mono">{{ c.opened_at.strftime('%d %b %H:%M') }}</td>
+        <td class="num">{{ c.scans | n }}</td>
+        <td>
+          {% if c.closed_at %}<span class="pill idle">closed</span>
+          {% else %}<span class="pill ok">open</span>{% endif %}
+        </td>
+        <td>
+          {% if not c.closed_at %}
+          <form method="post" action="/ui/checklist/{{ c.id }}/close">
+            <button class="btn small quiet" type="submit">Close</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+{% if ship.status == 'active' %}
+<div class="card">
+  <h2>Open a checklist</h2>
+  <form method="post" action="/ui/shipment/{{ ship.id }}/checklists">
+    <div class="field-row">
+      <div class="field">
+        <label class="fl" for="stage">Stage</label>
+        <select id="stage" name="stage" required>
+          <option value="S1">S1 &mdash; first size segregation</option>
+          <option value="S5">S5 &mdash; second segregation, hangtag check</option>
+          <option value="S6">S6 &mdash; carton packing</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="fl" for="opened_by">Opened by</label>
+        <select id="opened_by" name="opened_by" required>
+          {% for s in supervisors %}
+          <option value="{{ s.id }}">{{ s.display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label class="fl" for="style_id">Style</label>
+        <select id="style_id" name="style_id" required>
+          {% for s in styles %}
+          <option value="{{ s.id }}">{{ s.style_no }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="fl" for="colour_id">Colour</label>
+        <select id="colour_id" name="colour_id" required>
+          {% for c in colours %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <button class="btn" type="submit">Open checklist</button>
+    <p class="hint">
+      Confirm the style and colour against the physical sample before opening.
+      Everything scanned into this checklist is attributed to what you declare
+      here.
+    </p>
+  </form>
+</div>
+{% else %}
+<div class="note warn">
+  This shipment is <strong>{{ ship.status }}</strong>, so no new checklist can
+  be opened.
+</div>
+{% endif %}
+{% endblock %}

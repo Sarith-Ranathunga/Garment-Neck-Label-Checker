@@ -1,0 +1,78 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Gnlc" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorPrimaryVariant">@color/brand_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/brand</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/ink</item>
+        <item name="android:statusBarColor">@color/brand_dark</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+    </style>
+
+    <!--
+      Every tappable thing is at least 56dp high. The operator is wearing
+      gloves and is not looking at the screen while reaching for it.
+    -->
+    <style name="Gnlc.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <style name="Gnlc.Button.Outlined" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:minHeight">56dp</item>
+        <item name="android:textSize">16sp</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <style name="Gnlc.Card" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">10dp</item>
+        <item name="cardElevation">1dp</item>
+        <item name="contentPadding">16dp</item>
+    </style>
+
+    <!--
+      The four text styles below carry parent="" deliberately.
+
+      A dotted style name is implicit inheritance in Android resources:
+      "Gnlc.Label" means "inherit from the style named Gnlc", and no such
+      style exists. aapt2 then fails with "resource style/Gnlc not found" —
+      once per style with a dotted name and no explicit parent. The three
+      styles above escape it only because each names a Material parent.
+
+      parent="" is the documented way to keep the dotted naming and opt out
+      of the implied inheritance. These are plain TextView attributes, so
+      there is nothing to inherit.
+    -->
+    <style name="Gnlc.Label" parent="">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/ink_muted</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.06</item>
+    </style>
+
+    <style name="Gnlc.Value" parent="">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textColor">@color/ink</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- The verdict word, sized to be read across a packing table. -->
+    <style name="Gnlc.Verdict" parent="">
+        <item name="android:textSize">40sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="Gnlc.SizeBig" parent="">
+        <item name="android:textSize">72sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textColor">@color/ink</item>
+    </style>
+</resources>

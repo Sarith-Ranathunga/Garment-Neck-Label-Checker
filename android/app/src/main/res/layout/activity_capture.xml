@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The capture screen.
+
+  The camera preview fills the screen and the verdict panel slides over the
+  bottom of it, rather than being a separate screen. An operator handling a
+  garment every few seconds should not be navigating: the result appears, they
+  see it, they tap once and the camera is live again.
+
+  The frame in the middle is also the crop region. What is inside it is what
+  gets uploaded, which is how the image stays under the 900 KB the server
+  accepts without the operator thinking about it.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- top bar -->
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/scrim"
+        android:padding="14dp">
+
+        <TextView
+            android:id="@+id/contextLine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/stepLine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#CCFFFFFF"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/queueLine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#FFFFD180"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- the capture frame -->
+    <FrameLayout
+        android:id="@+id/frameBox"
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_gravity="center"
+        android:layout_marginStart="28dp"
+        android:layout_marginEnd="28dp"
+        android:background="@drawable/bg_capture_frame" />
+
+    <!-- bottom controls -->
+    <LinearLayout
+        android:id="@+id/controls"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="@color/scrim"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/hintLine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:gravity="center"
+            android:textColor="#DDFFFFFF"
+            android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/captureButton"
+            style="@style/Gnlc.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:textSize="18sp"
+            android:text="@string/capture" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <!--
+              Help is one tap away and always visible. §5.6 counts how often
+              it is used; a button buried in a menu would under-count.
+            -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/helpButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textColor="@color/white"
+                android:text="@string/need_help" />
+
+            <!--
+              The bypass. Visible, because hiding it would push operators to
+              work around the app entirely and the bypass rate DP3 predicts
+              would then be unmeasurable rather than low. §5.8.
+            -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/manualButton"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textColor="@color/white"
+                android:text="@string/enter_manually" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- verdict panel -->
+    <!--
+      Covers the screen when a verdict arrives. Full-bleed colour, because the
+      message has to be readable across a packing table by someone who is not
+      reading the words.
+    -->
+    <LinearLayout
+        android:id="@+id/verdictPanel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="24dp"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/verdictWord"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/Gnlc.Verdict" />
+
+        <TextView
+            android:id="@+id/verdictSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            style="@style/Gnlc.SizeBig" />
+
+        <TextView
+            android:id="@+id/verdictDetail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:textSize="17sp"
+            android:lineSpacingExtra="4dp"
+            android:textColor="@color/ink" />
+
+        <TextView
+            android:id="@+id/verdictMeta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="center"
+            android:textSize="13sp"
+            android:textColor="@color/ink_muted" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/nextButton"
+            style="@style/Gnlc.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:minHeight="64dp"
+            android:textSize="18sp"
+            android:text="@string/next_garment" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/fallbackButton"
+            style="@style/Gnlc.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            android:text="@string/enter_manually" />
+    </LinearLayout>
+
+    <!-- permission prompt -->
+    <LinearLayout
+        android:id="@+id/permissionPanel"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="28dp"
+        android:background="@color/background"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/camera_needed"
+            android:textSize="17sp"
+            android:textColor="@color/ink" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/grantButton"
+            style="@style/Gnlc.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/grant" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/busy"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:indeterminateTint="@color/white" />
+</FrameLayout>

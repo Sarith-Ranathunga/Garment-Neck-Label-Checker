@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% set nav = 'setup' %}
+{% block title %}Setup{% endblock %}
+
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>Setup</h1>
+    <p class="sub">The manager&rsquo;s screen: purchase order, shipment, size allocation.</p>
+  </div>
+</div>
+
+{#
+  PO data is entered by hand rather than extracted from the buyer's PDF, and
+  that is a scope decision rather than a limitation. Extraction was feasible —
+  the POs are text-based PDFs — but every buyer uses a different layout, so a
+  general parser needs a per-buyer template system. PO entry happens once per
+  shipment; garment scanning happens thousands of times. The development
+  effort belongs with the high-frequency, unproven component.
+#}
+<div class="note">
+  Purchase order details are typed in once per shipment. The buyer&rsquo;s PDF
+  is text-selectable, so the figures can be copied rather than retyped.
+</div>
+
+<div class="grid two">
+  {# ============================================== new PO and shipment === #}
+  <div class="card">
+    <h2>New shipment</h2>
+    <form method="post" action="/ui/setup/shipment">
+      <div class="field">
+        <label class="fl" for="po_number">Purchase order number</label>
+        <input type="text" id="po_number" name="po_number" required
+               placeholder="130022" autocomplete="off">
+        <p class="hint">
+          Reused if it already exists &mdash; one PO is released as several
+          shipments.
+        </p>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="fl" for="buyer_id">Buyer</label>
+          <select id="buyer_id" name="buyer_id" required>
+            {% for b in buyers %}
+            <option value="{{ b.id }}">{{ b.code }} &mdash; {{ b.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label class="fl" for="style_id">Style</label>
+          <select id="style_id" name="style_id" required>
+            {% for s in styles %}
+            <option value="{{ s.id }}">{{ s.buyer_code }} &middot; {{ s.style_no }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="fl" for="reference">Shipment reference</label>
+        <input type="text" id="reference" name="reference" required
+               placeholder="SHP-130022-02" autocomplete="off">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="fl" for="ship_date">Ship date</label>
+          <input type="date" id="ship_date" name="ship_date" required>
+        </div>
+        <div class="field">
+          <label class="fl" for="declared_qty">Declared quantity</label>
+          <input type="number" id="declared_qty" name="declared_qty" min="1"
+                 required placeholder="56000">
+        </div>
+      </div>
+      <div class="field">
+        <label class="fl" for="created_by">Entered by</label>
+        <select id="created_by" name="created_by" required>
+          {% for m in managers %}
+          <option value="{{ m.id }}">{{ m.display_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button class="btn" type="submit">Create shipment</button>
+    </form>
+  </div>
+
+  {# ===================================================== allocation === #}
+  <div class="card">
+    <h2>Size allocation</h2>
+
+    <form method="get" action="/ui/setup" class="field">
+      <label class="fl" for="shipment_id">Shipment</label>
+      <div class="btn-row">
+        <select id="shipment_id" name="shipment_id" style="flex:1"
+                onchange="this.form.submit()">
+          <option value="">Choose a shipment…</option>
+          {% for s in shipments %}
+          <option value="{{ s.id }}" {{ 'selected' if selected and s.id == selected.id }}>
+            {{ s.reference }} &mdash; {{ s.declared_qty | n }} declared
+            {%- if s.allocated != s.declared_qty %} (unbalanced){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+        <noscript><button class="btn quiet small" type="submit">Load</button></noscript>
+      </div>
+    </form>
+
+    {% if not selected %}
+      <p class="card-note">
+        Choose a shipment to enter its per-size quantities.
+      </p>
+    {% else %}
+
+      {#
+        ⭐ The one unforgiving validation in the whole artefact.
+
+        The allocated total must equal the declared total, and a mismatch is
+        REFUSED rather than warned about. This is the single point where a typo
+        poisons everything downstream: the valid size set the recogniser parses
+        against, every per-size count, and every reconciliation delta. A
+        warning that can be clicked past is not a control.
+      #}
+      <div class="note {{ 'ok' if selected.allocated == selected.declared_qty else 'warn' }}">
+        <strong>{{ selected.reference }}</strong> declares
+        {{ selected.declared_qty | n }}.
+        {% if selected.allocated == selected.declared_qty %}
+          The allocation balances.
+        {% else %}
+          Currently allocated: {{ selected.allocated | n }}
+          ({{ (selected.allocated - selected.declared_qty) | delta }}).
+          The totals must agree exactly before the shipment can be scanned.
+        {% endif %}
+      </div>
+
+      <form method="post" action="/ui/setup/allocation">
+        <input type="hidden" name="shipment_id" value="{{ selected.id }}">
+        <div class="field">
+          <label class="fl" for="colour_id">Colour</label>
+          <select id="colour_id" name="colour_id" required>
+            {% for c in colours %}
+            <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <label class="fl">Quantity per size</label>
+        <div class="sizes-grid" style="margin-bottom:14px">
+          {% for s in sizes %}
+          <div>
+            <label class="fl" for="qty_{{ s.canonical }}"
+                   style="font-size:13px;text-transform:none;letter-spacing:0;color:var(--ink)">
+              {{ s.canonical }}</label>
+            <input type="number" min="0" id="qty_{{ s.canonical }}"
+                   name="qty_{{ s.canonical }}" placeholder="0"
+                   value="{{ (allocation | selectattr('size', 'equalto', s.canonical) | map(attribute='qty') | first) or '' }}"
+                   oninput="gnlcTotal()">
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="note" id="running" style="margin-bottom:14px">
+          Entered total: <strong id="runtotal">0</strong> of
+          {{ selected.declared_qty | n }} declared.
+        </div>
+
+        <button class="btn" type="submit">Save allocation</button>
+        <p class="hint">
+          Saving a balanced allocation activates the shipment. An unbalanced
+          one is refused and nothing is written.
+        </p>
+      </form>
+
+      <script>
+        /*
+          A running total, so the manager sees the shortfall while typing
+          rather than on a rejection after submitting. It is a convenience
+          only: the server validates again and refuses, because a check that
+          lives in the browser is not a control.
+        */
+        function gnlcTotal() {
+          var sum = 0;
+          document.querySelectorAll('input[name^="qty_"]').forEach(function (el) {
+            var v = parseInt(el.value, 10);
+            if (!isNaN(v) && v > 0) sum += v;
+          });
+          var declared = {{ selected.declared_qty }};
+          var out = document.getElementById('runtotal');
+          out.textContent = sum.toLocaleString();
+          var box = document.getElementById('running');
+          box.className = 'note ' + (sum === declared ? 'ok'
+                          : (sum === 0 ? '' : 'warn'));
+        }
+        gnlcTotal();
+      </script>
+
+      {% if allocation %}
+      <h2 style="margin-top:22px">Saved allocation</h2>
+      <table>
+        <thead><tr><th>Colour</th><th>Size</th><th class="num">Quantity</th></tr></thead>
+        <tbody>
+          {% for a in allocation %}
+          <tr>
+            <td>{{ a.colour }}</td>
+            <td class="sz">{{ a.size }}</td>
+            <td class="num">{{ a.qty | n }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr><td colspan="2">Total</td>
+            <td class="num">{{ allocation | sum(attribute='qty') | n }}</td></tr>
+        </tfoot>
+      </table>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Why the allocation matters beyond counting</h2>
+  <p class="card-note" style="margin:0">
+    The allocated sizes define the <strong>closed vocabulary</strong> the
+    recogniser parses against. Recognition of free-form label text is
+    unreliable; recognition against a small known set is not, and that
+    difference is what makes the artefact work. So this table is not only a
+    quantity record &mdash; it is the constraint that the first solution
+    objective depends on. A size allocated here that is not actually in the
+    shipment widens the vocabulary and makes a wrong read more likely.
+  </p>
+</div>
+{% endblock %}

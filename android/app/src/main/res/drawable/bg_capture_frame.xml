@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The box the operator fills with the label. It is also the crop region:
+  what is inside this frame is what gets uploaded, which is why the upload
+  stays under the 900 KB the server accepts.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <stroke android:width="3dp" android:color="#FFFFFFFF" />
+    <corners android:radius="8dp" />
+    <solid android:color="@android:color/transparent" />
+</shape>

@@ -1,0 +1,69 @@
+# Garment Neck Label Checker — deployment on the supervisor PC.
+#
+# One command rebuilds the whole service on a replacement machine:
+#     docker compose up -d
+# then restore the newest dump from the USB drive. That is the recovery
+# procedure in §4.9, and it is why the stack is defined here rather than
+# installed by hand.
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gnlc
+      POSTGRES_PASSWORD: ${GNLC_DB_PASSWORD:-gnlc}
+      POSTGRES_DB: gnlc
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/10-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gnlc"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GNLC_DATABASE_URL: postgresql://gnlc:${GNLC_DB_PASSWORD:-gnlc}@db:5432/gnlc
+      GNLC_IMAGE_DIR: /var/lib/gnlc/images
+      GNLC_EXPORT_DIR: /var/lib/gnlc/exports
+      GNLC_BACKUP_DIR: /backup
+    ports:
+      # Bound to all interfaces so phones on the factory WiFi can reach it.
+      # The PC needs a STATIC IP, or the phones lose it when the address
+      # changes. Windows Firewall must allow inbound 8000.
+      - "8000:8000"
+    volumes:
+      - gnlcdata:/var/lib/gnlc
+      # The encrypted USB drive. Change the left side to its mount point:
+      #   Windows  - "E:/gnlc-backup:/backup"
+      #   Linux    - "/media/usb/gnlc-backup:/backup"
+      - ${GNLC_USB_PATH:-./_backup}:/backup
+
+  backup:
+    build: ./server
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GNLC_DATABASE_URL: postgresql://gnlc:${GNLC_DB_PASSWORD:-gnlc}@db:5432/gnlc
+      GNLC_BACKUP_DIR: /backup
+      GNLC_BACKUP_MINUTES: "15"
+    volumes:
+      - ${GNLC_USB_PATH:-./_backup}:/backup
+    # A plain loop rather than cron: one fewer thing to configure, and the
+    # container restarting is itself the recovery.
+    command: >
+      sh -c 'while true; do python scripts/backup.py || true;
+             sleep $${GNLC_BACKUP_MINUTES:-15}m; done'
+
+volumes:
+  pgdata:
+  gnlcdata:

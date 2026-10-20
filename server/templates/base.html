@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}GNLC{% endblock %} · Garment Neck Label Checker</title>
+  <style>
+    /*
+      The verdict colours are the same three the Android client uses, so the
+      two halves of the artefact read as one system and a supervisor and an
+      operator describing a screen to each other mean the same thing.
+
+      Amber for a no-read is deliberate and not a softer red: a no-read is a
+      SAFE outcome, the system declining to guess. Colouring it like a failure
+      would teach people to treat the two the same, which is the collapse
+      §3.09 refuses.
+    */
+    :root {
+      --ink: #1a1a1a;
+      --ink-2: #44474b;
+      --muted: #5f6368;
+      --line: #dadce0;
+      --line-soft: #ebedf0;
+      --bg: #f4f5f7;
+      --surface: #ffffff;
+
+      --brand: #1a4d8f;
+      --brand-dark: #123866;
+      --brand-soft: #eaf1fa;
+
+      --ok: #1b7f32;
+      --ok-bg: #e6f4e9;
+      --bad: #c62828;
+      --bad-bg: #fde7e7;
+      --warn: #b26a00;
+      --warn-bg: #fff3e0;
+      --idle: #455a64;
+      --idle-bg: #eceff1;
+
+      --radius: 10px;
+      --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            Helvetica, Arial, sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---------------------------------------------------------- chrome --- */
+
+    header.top {
+      background: var(--brand-dark);
+      color: #fff;
+      padding: 0 20px;
+      border-bottom: 3px solid var(--brand);
+    }
+    .top-inner {
+      max-width: 1280px; margin: 0 auto;
+      display: flex; align-items: center; gap: 24px;
+      min-height: 56px; flex-wrap: wrap;
+    }
+    .brand {
+      font-weight: 700; font-size: 15px; letter-spacing: .02em;
+      color: #fff; text-decoration: none; white-space: nowrap;
+    }
+    .brand small {
+      display: block; font-weight: 400; font-size: 11px;
+      color: #adc4e0; letter-spacing: .06em; text-transform: uppercase;
+    }
+    nav.top-nav { display: flex; gap: 2px; margin-left: auto; flex-wrap: wrap; }
+    nav.top-nav a {
+      color: #cfdcec; text-decoration: none; font-size: 14px;
+      padding: 8px 12px; border-radius: 6px;
+    }
+    nav.top-nav a:hover { background: rgba(255,255,255,.1); color: #fff; }
+    nav.top-nav a.on { background: var(--brand); color: #fff; font-weight: 600; }
+
+    main { max-width: 1280px; margin: 0 auto; padding: 24px 20px 56px; }
+
+    /* ------------------------------------------------------- headings --- */
+
+    .page-head {
+      display: flex; align-items: flex-start; gap: 20px;
+      flex-wrap: wrap; margin-bottom: 22px;
+    }
+    h1 { font-size: 21px; margin: 0 0 3px; letter-spacing: -.01em; }
+    .page-head .sub { color: var(--muted); font-size: 13.5px; margin: 0; }
+    .page-head .spacer { margin-left: auto; }
+
+    h2 {
+      font-size: 12px; text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); margin: 0 0 10px; font-weight: 700;
+    }
+    h2 .h2-note {
+      text-transform: none; letter-spacing: 0; font-weight: 400;
+      color: var(--muted); font-size: 12.5px; margin-left: 8px;
+    }
+
+    /* ----------------------------------------------------------- cards --- */
+
+    .card {
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 18px 20px; margin-bottom: 18px;
+    }
+    .card.tight { padding: 0; overflow: hidden; }
+    .card.tight h2 { padding: 16px 20px 0; }
+    .card-note {
+      color: var(--muted); font-size: 13px; margin: 10px 0 0;
+      line-height: 1.5;
+    }
+    /* start, not stretch: a short card beside a tall one should not grow a
+       block of dead white space to match it. */
+    .grid { display: grid; gap: 18px; align-items: start; }
+    .grid.two { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 900px) { .grid.two { grid-template-columns: 1fr; } }
+
+    /* ------------------------------------------------------- stat tiles -- */
+
+    .tiles {
+      display: grid; gap: 1px; background: var(--line);
+      border: 1px solid var(--line); border-radius: var(--radius);
+      overflow: hidden; margin-bottom: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    .tile { background: var(--surface); padding: 14px 16px; }
+    .tile .k {
+      font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+      color: var(--muted); font-weight: 600; margin-bottom: 4px;
+    }
+    .tile .v { font-size: 25px; font-weight: 700; line-height: 1.1; }
+    .tile .f { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .tile.ok .v   { color: var(--ok); }
+    .tile.bad .v  { color: var(--bad); }
+    .tile.warn .v { color: var(--warn); }
+
+    /* ---------------------------------------------------------- tables --- */
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead th {
+      text-align: left; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--muted); font-weight: 700;
+      padding: 10px 12px; border-bottom: 1px solid var(--line);
+      background: #fafbfc; white-space: nowrap;
+    }
+    tbody td {
+      padding: 10px 12px; border-bottom: 1px solid var(--line-soft);
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fbfcfd; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .mono { font-family: var(--mono); font-size: 13px; }
+    tfoot td {
+      padding: 11px 12px; border-top: 2px solid var(--line);
+      font-weight: 700; background: #fafbfc;
+    }
+    td.sz { font-weight: 700; }
+    .empty { padding: 22px 20px; color: var(--muted); font-size: 14px; }
+
+    /* A delta column: zero is quiet, non-zero is the finding. */
+    .d0 { color: var(--muted); }
+    .dn { color: var(--bad); font-weight: 700; }
+    .dp { color: var(--warn); font-weight: 700; }
+
+    /* ------------------------------------------------------------ pills -- */
+
+    .pill {
+      display: inline-block; padding: 2px 9px; border-radius: 99px;
+      font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .pill.ok    { background: var(--ok-bg);   color: var(--ok); }
+    .pill.bad   { background: var(--bad-bg);  color: var(--bad); }
+    .pill.warn  { background: var(--warn-bg); color: var(--warn); }
+    .pill.idle  { background: var(--idle-bg); color: var(--idle); }
+    .pill.brand { background: var(--brand-soft); color: var(--brand); }
+
+    /* --------------------------------------------------------- controls -- */
+
+    .btn {
+      display: inline-block; border: 1px solid var(--brand);
+      background: var(--brand); color: #fff; border-radius: 7px;
+      padding: 9px 15px; font-size: 14px; font-weight: 600;
+      cursor: pointer; text-decoration: none; font-family: inherit;
+      line-height: 1.3;
+    }
+    .btn:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+    .btn.ghost { background: #fff; color: var(--brand); }
+    .btn.ghost:hover { background: var(--brand-soft); }
+    .btn.quiet {
+      background: #fff; color: var(--ink-2); border-color: var(--line);
+    }
+    .btn.quiet:hover { background: #f6f7f9; }
+    .btn.small { padding: 6px 11px; font-size: 13px; }
+    .btn.danger { background: #fff; color: var(--bad); border-color: #e8b4b4; }
+    .btn.danger:hover { background: var(--bad-bg); }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    label.fl {
+      display: block; font-size: 11px; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); font-weight: 700;
+      margin: 0 0 5px;
+    }
+    input[type=text], input[type=number], input[type=date], select, textarea {
+      width: 100%; padding: 9px 11px; font-size: 15px; font-family: inherit;
+      border: 1px solid var(--line); border-radius: 7px; background: #fff;
+      color: var(--ink);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid var(--brand); outline-offset: -1px; border-color: var(--brand);
+    }
+    .field { margin-bottom: 14px; }
+    .field-row { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 700px) { .field-row { grid-template-columns: 1fr; } }
+    .hint { font-size: 12.5px; color: var(--muted); margin: 5px 0 0; }
+
+    /* --------------------------------------------------------- callouts -- */
+
+    .note {
+      border-left: 3px solid var(--line); padding: 12px 14px;
+      background: #fafbfc; border-radius: 0 7px 7px 0; font-size: 13.5px;
+      color: var(--ink-2); line-height: 1.55; margin: 0 0 16px;
+    }
+    .note.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+    .note.bad  { border-left-color: var(--bad);  background: var(--bad-bg); }
+    .note.ok   { border-left-color: var(--ok);   background: var(--ok-bg); }
+    .note strong { color: var(--ink); }
+
+    footer.foot {
+      max-width: 1280px; margin: 0 auto; padding: 0 20px 36px;
+      color: var(--muted); font-size: 12.5px; line-height: 1.6;
+    }
+    a { color: var(--brand); }
+    .sizes-grid {
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="/ui">Garment Neck Label Checker
+        <small>Supervisor interface</small></a>
+      <nav class="top-nav">
+        <a href="/ui" class="{{ 'on' if nav == 'shipments' }}">Shipments</a>
+        <a href="/ui/setup" class="{{ 'on' if nav == 'setup' }}">Setup</a>
+        <a href="/ui/evaluation" class="{{ 'on' if nav == 'evaluation' }}">Evaluation</a>
+        <a href="/docs">API</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>{% block body %}{% endblock %}</main>
+
+  <footer class="foot">
+    <div>
+      Monitoring and setup only &mdash; no scanning happens here.
+      The Android client is the only scanning device.
+    </div>
+    <div style="margin-top:6px">
+      S. J. Ranathunga &middot; COBSCCOMP242P-011 &middot;
+      NIBM School of Computing &amp; Engineering
+      &middot; page generated {{ now.strftime('%H:%M:%S') }}
+    </div>
+  </footer>
+</body>
+</html>

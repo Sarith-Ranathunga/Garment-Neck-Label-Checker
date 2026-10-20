@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The verdict colours carry the message at arm's length, across a packing
+  table, to someone who is not reading the words. Three states, three
+  unmistakable colours, and the mismatch red is the most saturated thing in
+  the app so nothing else competes with it.
+
+  Amber for a no-read is deliberate and not a softer red. A no-read is a safe
+  outcome — the system declined to guess — and colouring it like a failure
+  would teach operators to treat the two the same. That distinction is the
+  whole reason the three recognition outcomes are never combined (§3.09).
+-->
+<resources>
+    <color name="ink">#FF1A1A1A</color>
+    <color name="ink_muted">#FF5F6368</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="background">#FFF4F5F7</color>
+    <color name="divider">#FFDADCE0</color>
+
+    <color name="brand">#FF1A4D8F</color>
+    <color name="brand_dark">#FF123866</color>
+
+    <color name="verdict_match">#FF1B7F32</color>
+    <color name="verdict_match_bg">#FFE6F4E9</color>
+
+    <color name="verdict_mismatch">#FFC62828</color>
+    <color name="verdict_mismatch_bg">#FFFDE7E7</color>
+
+    <color name="verdict_no_read">#FFB26A00</color>
+    <color name="verdict_no_read_bg">#FFFFF3E0</color>
+
+    <color name="verdict_queued">#FF455A64</color>
+    <color name="verdict_queued_bg">#FFECEFF1</color>
+
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+    <color name="scrim">#99000000</color>
+</resources>

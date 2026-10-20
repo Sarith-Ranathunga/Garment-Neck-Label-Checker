@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% set nav = 'evaluation' %}
+{% block title %}Evaluation{% endblock %}
+
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>Evaluation figures</h1>
+    <p class="sub">
+      What Chapter 5 reports, read straight from the database.
+      {{ scans | n }} scans recorded.
+    </p>
+  </div>
+</div>
+
+{#
+  This page is for the researcher, not the supervisor, and it is the one
+  screen that can embarrass the artefact. That is deliberate: a bypass rate is
+  a measure of the design failing to be worth using, and an artefact that
+  cannot display its own weakness makes DP3 untestable and O4's adoption claim
+  unfalsifiable.
+
+  §3.12 commits this research to reporting no individual-level result. The
+  per-operator rows exist for the researcher's own analysis and are aggregated
+  before anything is written down.
+#}
+<div class="note">
+  For the researcher, not the floor. Per-operator rows are shown because
+  &sect;5.8 needs them; &sect;3.12 commits this research to publishing no
+  individual-level result, so they are aggregated before anything is written
+  down.
+</div>
+
+{# ========================================================== DP3 === #}
+<div class="card tight">
+  <h2>Bypass behaviour
+    <span class="h2-note">DP3 &mdash; &sect;5.8</span>
+  </h2>
+
+  {% if bypass_total and bypass_total.entries %}
+  <div class="tiles" style="margin:0;border:0;border-radius:0;border-bottom:1px solid var(--line)">
+    <div class="tile {{ 'bad' if bypass_total.bypasses else 'ok' }}">
+      <div class="k">Bypasses</div>
+      <div class="v">{{ bypass_total.bypasses | n }}</div>
+      <div class="f">no recognition behind the entry</div>
+    </div>
+    <div class="tile">
+      <div class="k">Manual entries</div>
+      <div class="v">{{ bypass_total.entries | n }}</div>
+      <div class="f">both paths together</div>
+    </div>
+    <div class="tile">
+      <div class="k">Bypass rate</div>
+      <div class="v">
+        {{ (bypass_total.bypasses / bypass_total.entries) | pct }}
+      </div>
+      <div class="f">of all manual entries</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not bypass %}
+    <div class="empty">No manual entries recorded yet.</div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Operator</th><th class="num">Bypasses</th>
+        <th class="num">Entries</th><th class="num">Rate</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bypass %}
+      <tr>
+        <td>{{ b.display_name }}</td>
+        <td class="num {{ 'dn' if b.bypass_entries }}">{{ b.bypass_entries | n }}</td>
+        <td class="num">{{ b.fallback_entries | n }}</td>
+        <td class="num">{{ b.bypass_rate | pct }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <p class="card-note" style="padding:0 20px 18px">
+    A <strong>bypass</strong> is a size entered with no recognition attempt
+    behind it; a <strong>fallback</strong> follows a genuine no read and is the
+    escape hatch O1 requires. The two arrive on different endpoints, and the
+    server &mdash; not the phone &mdash; writes the null that distinguishes
+    them, so the figure cannot be flattered by the client. A high rate is a
+    finding about the design, not a fault to be hidden.
+  </p>
+</div>
+
+<div class="grid two">
+  {# ==================================================== latency === #}
+  <div class="card tight">
+    <h2>Latency
+      <span class="h2-note">&sect;5.7</span>
+    </h2>
+    {% if not latency %}
+      <div class="empty">No timed scans yet.</div>
+    {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>Stage</th><th class="num">n</th><th class="num">Engine</th>
+          <th class="num">Round trip</th><th class="num">End to end</th>
+          <th class="num">SD</th><th class="num">Max</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in latency %}
+        <tr>
+          <td><strong>{{ l.stage }}</strong></td>
+          <td class="num">{{ l.n | n }}</td>
+          <td class="num">{{ l.engine_mean | ms }}</td>
+          <td class="num">{{ l.trip_mean | ms }}</td>
+          <td class="num"><strong>{{ l.e2e_mean | ms }}</strong></td>
+          <td class="num">{{ l.e2e_sd | ms }}</td>
+          <td class="num">{{ l.e2e_max | ms }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <p class="card-note" style="padding:0 20px 18px">
+      <strong>End to end is the figure to report.</strong> Engine time is what
+      the recogniser costs; end to end is what the operator waits, and it is
+      the only one that describes their experience. It exists only because the
+      phone sends back the moment the verdict appeared on screen &mdash; the
+      host cannot know it.
+      {% set missing = latency | sum(attribute='missing_e2e') %}
+      {% if missing %}
+        <br><span style="color:var(--warn)">
+        {{ missing | n }} scans have no end-to-end time and are excluded.
+        State that count in &sect;5.7: dropping them silently would bias the
+        result towards the scans taken while the network was healthy &mdash;
+        the fast ones.</span>
+      {% endif %}
+    </p>
+  </div>
+
+  {# ============================================ recognition outcomes === */ #}
+  <div class="card tight">
+    <h2>Recognition outcomes
+      <span class="h2-note">never combined &mdash; &sect;5.5</span>
+    </h2>
+    {% if not outcomes %}
+      <div class="empty">No recognition results yet.</div>
+    {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>Outcome</th><th class="num">n</th>
+          <th class="num">Mean confidence</th><th class="num">Mean time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in outcomes %}
+        <tr>
+          <td>
+            {% if o.outcome == 'correct' %}<span class="pill ok">correct</span>
+            {% elif o.outcome == 'wrong_read' %}<span class="pill bad">wrong read</span>
+            {% else %}<span class="pill warn">no read</span>{% endif %}
+          </td>
+          <td class="num">{{ o.n | n }}</td>
+          <td class="num">{{ o.mean_confidence or '—' }}</td>
+          <td class="num">{{ o.mean_ms | ms }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <p class="card-note" style="padding:0 20px 18px">
+      A <strong>wrong read</strong> passes a defective garment while asserting
+      it is correct. A <strong>no read</strong> routes to manual entry. One is
+      dangerous and one is safe, so a single accuracy figure would conceal
+      exactly the distinction the artefact exists to address.
+    </p>
+  </div>
+</div>
+
+<div class="grid two">
+  {# ============================================== barcode resolution === #}
+  <div class="card tight">
+    <h2>How the hangtag resolved</h2>
+    {% if not barcode_paths %}
+      <div class="empty">No scans yet.</div>
+    {% else %}
+    <table>
+      <thead><tr><th>Path</th><th class="num">Scans</th></tr></thead>
+      <tbody>
+        {% for p in barcode_paths %}
+        <tr>
+          <td>
+            {% if 'unresolved' in p.path %}
+              <span class="pill warn">{{ p.path }}</span>
+            {% else %}{{ p.path }}{% endif %}
+          </td>
+          <td class="num">{{ p.n | n }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <p class="card-note" style="padding:0 20px 18px">
+      An <strong>unresolved</strong> barcode is a gap in the barcode table, not
+      a size error &mdash; the system does not know what that garment should
+      be, which says nothing about the garment. Counting it as a mismatch would
+      put a false positive against O2 and send an operator to pull a garment
+      that is almost certainly correct. An unresolved rate above a few per cent
+      is a finding about data entry, not about recognition.
+    </p>
+  </div>
+
+  {# ================================================== assistance === #}
+  <div class="card tight">
+    <h2>Assistance requested
+      <span class="h2-note">&sect;5.6</span>
+    </h2>
+    {% if not assistance %}
+      <div class="empty">No assistance requested.</div>
+    {% else %}
+    <table>
+      <thead><tr><th>Cause</th><th>Stage</th><th class="num">n</th></tr></thead>
+      <tbody>
+        {% for a in assistance %}
+        <tr><td>{{ a.cause }}</td><td>{{ a.stage }}</td>
+          <td class="num">{{ a.n | n }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <p class="card-note" style="padding:0 20px 18px">
+      Self-reported, and reported as such: the operator presses the button, so
+      this is a count of occasions help was <em>requested</em>, not of
+      occasions help was <em>needed</em>. &sect;5.6 states that limitation
+      rather than presenting the number as more than it is.
+    </p>
+  </div>
+</div>
+
+{# ============================================= late detection === #}
+<div class="card">
+  <h2>Detected, but detected late
+    <span class="h2-note">&sect;5.5</span>
+  </h2>
+  {% if not late or not late.queued %}
+    <div class="note ok" style="margin:0">
+      <strong>No scan was delayed.</strong> Every verdict reached its operator
+      before the garment moved on.
+    </div>
+  {% else %}
+    <div class="tiles" style="margin:0 0 14px">
+      <div class="tile warn">
+        <div class="k">Queued scans</div>
+        <div class="v">{{ late.queued | n }}</div>
+      </div>
+      <div class="tile {{ 'bad' if late.late_mismatch }}">
+        <div class="k">Late mismatches</div>
+        <div class="v">{{ late.late_mismatch | n }}</div>
+      </div>
+      <div class="tile">
+        <div class="k">Mean delay</div>
+        <div class="v">{{ late.mean_delay_s or '—' }}<span
+          style="font-size:15px;color:var(--muted)">{% if late.mean_delay_s %} s{% endif %}</span></div>
+      </div>
+    </div>
+    <p class="card-note" style="margin:0">
+      Do not fold these into the detection rate. An escape prevented and an
+      escape found after the carton is sealed are different outcomes: the
+      second means someone has to find and reopen a carton, which the first
+      does not. A single headline figure buries that.
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

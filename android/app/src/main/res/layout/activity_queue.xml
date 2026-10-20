@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The queue.
+
+  Visible to the operator on purpose. A scan waiting to send means a garment
+  was packed without a verdict, and the person who packed it is the one who
+  needs to know. Hiding the queue would make the artefact look better and the
+  packing worse.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/queue_title"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/ink" />
+
+    <TextView
+        android:id="@+id/summaryLine"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textSize="14sp"
+        android:textColor="@color/ink_muted" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/queueList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="14dp"
+        android:clipToPadding="false" />
+
+    <TextView
+        android:id="@+id/emptyNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="@string/queue_empty"
+        android:textSize="15sp"
+        android:textColor="@color/ink_muted"
+        android:visibility="gone" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/syncButton"
+        style="@style/Gnlc.Button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/sync_now" />
+</LinearLayout>

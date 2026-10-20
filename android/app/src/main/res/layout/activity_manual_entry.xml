@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Manual size entry.
+
+  The sizes offered are the shipment's allocated sizes and nothing else. A free
+  text field would let an operator type a size that is not in the shipment,
+  and that value would then flow into the carton contents and the
+  reconciliation as though it were real. A closed keypad makes the invalid
+  entry unreachable rather than validated after the fact.
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/manual_entry"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/ink" />
+
+        <!--
+          Says which of the two paths this is. A bypass is labelled as a
+          bypass on the operator's own screen, not only in the database.
+        -->
+        <TextView
+            android:id="@+id/pathNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:padding="12dp"
+            android:textSize="14sp"
+            android:lineSpacingExtra="3dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:text="@string/manual_entry"
+            style="@style/Gnlc.Label" />
+
+        <!--
+          Size keys are added here at runtime from the cached allocation.
+          The framework GridLayout, not Flexbox: one fewer dependency to
+          break, and three columns of large keys is the whole requirement.
+        -->
+        <GridLayout
+            android:id="@+id/sizeContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:columnCount="3"
+            android:useDefaultMargins="false" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:text="@string/manual_reason"
+            style="@style/Gnlc.Label" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            app:hintEnabled="false">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/reasonInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapSentences"
+                android:imeOptions="actionDone"
+                android:textSize="16sp"
+                android:autofillHints="" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/confirmButton"
+            style="@style/Gnlc.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:enabled="false"
+            android:text="@string/manual_confirm" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/cancelButton"
+            style="@style/Gnlc.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/cancel" />
+    </LinearLayout>
+</ScrollView>

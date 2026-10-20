@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 1010" width="1160" height="1010">
+  <defs>
+    <style>
+      .t    { font-family:"Times New Roman",Times,serif; fill:#000; }
+      .uc   { fill:#F2F2F2; stroke:#000; stroke-width:1.5; }
+      .lbl  { font-size:16px; text-anchor:middle; }
+      .act  { font-size:18px; text-anchor:middle; font-weight:bold; }
+      .sys  { font-size:20px; font-weight:bold; text-anchor:middle; }
+      .ln   { stroke:#000; stroke-width:1.3; fill:none; }
+      .dash { stroke:#000; stroke-width:1.2; fill:none; stroke-dasharray:6,4; }
+      .fig  { stroke:#000; stroke-width:2; fill:none; }
+      .it   { font-size:14px; font-style:italic; text-anchor:middle; }
+    </style>
+  </defs>
+  <rect x="0" y="0" width="1160" height="1010" fill="#FFFFFF"/>
+
+  <!-- system boundary -->
+  <rect x="300" y="46" width="560" height="890" fill="none" stroke="#000" stroke-width="1.6"/>
+  <text class="t sys" x="580" y="80">Garment Neck Label Checker</text>
+
+  <!-- ========== stick figures: MANAGER ========== -->
+  <g transform="translate(120,150)">
+    <circle class="fig" cx="0" cy="-34" r="13"/>
+    <line class="fig" x1="0" y1="-21" x2="0" y2="12"/>
+    <line class="fig" x1="-17" y1="-8" x2="17" y2="-8"/>
+    <line class="fig" x1="0" y1="12" x2="-13" y2="36"/>
+    <line class="fig" x1="0" y1="12" x2="13" y2="36"/>
+    <text class="t act" x="0" y="58">Manager</text>
+  </g>
+
+  <!-- SUPERVISOR -->
+  <g transform="translate(120,420)">
+    <circle class="fig" cx="0" cy="-34" r="13"/>
+    <line class="fig" x1="0" y1="-21" x2="0" y2="12"/>
+    <line class="fig" x1="-17" y1="-8" x2="17" y2="-8"/>
+    <line class="fig" x1="0" y1="12" x2="-13" y2="36"/>
+    <line class="fig" x1="0" y1="12" x2="13" y2="36"/>
+    <text class="t act" x="0" y="58">Supervisor</text>
+  </g>
+
+  <!-- WORKER -->
+  <g transform="translate(120,700)">
+    <circle class="fig" cx="0" cy="-34" r="13"/>
+    <line class="fig" x1="0" y1="-21" x2="0" y2="12"/>
+    <line class="fig" x1="-17" y1="-8" x2="17" y2="-8"/>
+    <line class="fig" x1="0" y1="12" x2="-13" y2="36"/>
+    <line class="fig" x1="0" y1="12" x2="13" y2="36"/>
+    <text class="t act" x="0" y="58">Worker</text>
+  </g>
+
+  <!-- SYSTEM (secondary actor, right) -->
+  <g transform="translate(1040,520)">
+    <circle class="fig" cx="0" cy="-34" r="13"/>
+    <line class="fig" x1="0" y1="-21" x2="0" y2="12"/>
+    <line class="fig" x1="-17" y1="-8" x2="17" y2="-8"/>
+    <line class="fig" x1="0" y1="12" x2="-13" y2="36"/>
+    <line class="fig" x1="0" y1="12" x2="13" y2="36"/>
+    <text class="t act" x="0" y="58">System</text>
+    <text class="t it" x="0" y="78">(scheduled)</text>
+  </g>
+
+  <!-- ========== use cases ========== -->
+  <!-- manager -->
+  <ellipse class="uc" cx="470" cy="126" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="132">Maintain buyer</text>
+  <ellipse class="uc" cx="470" cy="194" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="192">Maintain buyer</text>
+  <text class="t lbl" x="470" y="210">size code map</text>
+  <ellipse class="uc" cx="470" cy="262" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="268">Enter purchase order</text>
+  <ellipse class="uc" cx="470" cy="330" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="328">Create shipment and</text>
+  <text class="t lbl" x="470" y="346">size allocation</text>
+
+  <!-- included -->
+  <ellipse class="uc" cx="760" cy="330" rx="118" ry="29"/>
+  <text class="t lbl" x="760" y="328">Validate allocation</text>
+  <text class="t lbl" x="760" y="346">against declared total</text>
+
+  <!-- supervisor -->
+  <ellipse class="uc" cx="470" cy="420" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="426">Open checklist</text>
+  <ellipse class="uc" cx="470" cy="488" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="486">Monitor packing flow</text>
+  <text class="t lbl" x="470" y="504">(per-stage counts)</text>
+  <ellipse class="uc" cx="470" cy="556" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="562">Review mismatches</text>
+
+  <!-- worker -->
+  <ellipse class="uc" cx="470" cy="634" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="632">Establish size at</text>
+  <text class="t lbl" x="470" y="650">first segregation</text>
+  <ellipse class="uc" cx="470" cy="712" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="710">Compare identifiers at</text>
+  <text class="t lbl" x="470" y="728">second segregation</text>
+  <ellipse class="uc" cx="470" cy="790" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="796">Pack carton</text>
+  <ellipse class="uc" cx="470" cy="866" rx="128" ry="29"/>
+  <text class="t lbl" x="470" y="864">Request supervisor</text>
+  <text class="t lbl" x="470" y="882">assistance</text>
+
+  <!-- included / extended by system -->
+  <ellipse class="uc" cx="760" cy="634" rx="118" ry="29"/>
+  <text class="t lbl" x="760" y="632">Recognise neck</text>
+  <text class="t lbl" x="760" y="650">label size</text>
+  <ellipse class="uc" cx="760" cy="712" rx="118" ry="29"/>
+  <text class="t lbl" x="760" y="710">Resolve buyer</text>
+  <text class="t lbl" x="760" y="728">notation</text>
+  <ellipse class="uc" cx="760" cy="790" rx="118" ry="29"/>
+  <text class="t lbl" x="760" y="788">Enter size manually</text>
+  <text class="t lbl" x="760" y="806">(fallback)</text>
+
+  <!-- system -->
+  <ellipse class="uc" cx="760" cy="430" rx="118" ry="29"/>
+  <text class="t lbl" x="760" y="428">Reconcile counts</text>
+  <text class="t lbl" x="760" y="446">across four points</text>
+  <ellipse class="uc" cx="760" cy="500" rx="118" ry="29"/>
+  <text class="t lbl" x="760" y="506">Generate packing list</text>
+  <ellipse class="uc" cx="760" cy="880" rx="118" ry="29"/>
+  <text class="t lbl" x="760" y="878">Export workbook ·</text>
+  <text class="t lbl" x="760" y="896">back up to USB</text>
+
+  <!-- ========== associations ========== -->
+  <line class="ln" x1="150" y1="130" x2="342" y2="126"/>
+  <line class="ln" x1="150" y1="138" x2="342" y2="194"/>
+  <line class="ln" x1="150" y1="146" x2="342" y2="262"/>
+  <line class="ln" x1="150" y1="154" x2="342" y2="330"/>
+
+  <line class="ln" x1="150" y1="404" x2="342" y2="420"/>
+  <line class="ln" x1="150" y1="412" x2="342" y2="488"/>
+  <line class="ln" x1="150" y1="420" x2="342" y2="556"/>
+
+  <line class="ln" x1="150" y1="686" x2="342" y2="634"/>
+  <line class="ln" x1="150" y1="694" x2="342" y2="712"/>
+  <line class="ln" x1="150" y1="702" x2="342" y2="790"/>
+  <line class="ln" x1="150" y1="710" x2="342" y2="866"/>
+
+  <line class="ln" x1="1010" y1="498" x2="878" y2="440"/>
+  <line class="ln" x1="1010" y1="506" x2="878" y2="500"/>
+  <line class="ln" x1="1010" y1="514" x2="878" y2="880"/>
+
+  <!-- include / extend -->
+  <line class="dash" x1="598" y1="330" x2="642" y2="330"/>
+  <text class="t it" x="620" y="322">«include»</text>
+
+  <line class="dash" x1="598" y1="634" x2="642" y2="634"/>
+  <text class="t it" x="620" y="626">«include»</text>
+  <line class="dash" x1="598" y1="712" x2="642" y2="712"/>
+  <text class="t it" x="620" y="704">«include»</text>
+  <line class="dash" x1="598" y1="700" x2="642" y2="782"/>
+  <text class="t it" x="628" y="758">«extend»</text>
+
+
+  <text class="t it" x="580" y="972">«extend» marks the fallback path: it runs only when recognition returns no read.</text>
+</svg>

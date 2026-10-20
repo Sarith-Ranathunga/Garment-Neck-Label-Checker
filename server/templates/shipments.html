@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% set nav = 'shipments' %}
+{% block title %}Shipments{% endblock %}
+
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>Shipments</h1>
+    <p class="sub">Active shipments first. Choose one to watch its packing flow.</p>
+  </div>
+  <div class="spacer btn-row">
+    <a class="btn" href="/ui/setup">New shipment</a>
+  </div>
+</div>
+
+{% if not shipments %}
+  <div class="card">
+    <div class="empty">
+      No shipments yet. <a href="/ui/setup">Enter a purchase order</a> to start.
+    </div>
+  </div>
+{% else %}
+<div class="card tight">
+  <table>
+    <thead>
+      <tr>
+        <th>Reference</th>
+        <th>Buyer</th>
+        <th>PO</th>
+        <th>Ship date</th>
+        <th class="num">Declared</th>
+        <th class="num">Allocated</th>
+        <th class="num">Scans</th>
+        <th class="num">Cartons</th>
+        <th class="num">Mismatches</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in shipments %}
+      <tr>
+        <td><a href="/ui/shipment/{{ s.id }}"><strong>{{ s.reference }}</strong></a></td>
+        <td>{{ s.buyer_code }}</td>
+        <td class="mono">{{ s.po_number }}</td>
+        <td>{{ s.ship_date }}</td>
+        <td class="num">{{ s.declared_qty | n }}</td>
+        {#
+          Allocated against declared is the one check worth putting in a list
+          view. An allocation that does not balance means the shipment is not
+          scannable, and the manager needs to see that before walking to the
+          floor rather than after.
+        #}
+        <td class="num">
+          {% if s.allocated == s.declared_qty %}
+            {{ s.allocated | n }}
+          {% else %}
+            <span class="pill bad">{{ (s.allocated - s.declared_qty) | delta }}</span>
+          {% endif %}
+        </td>
+        <td class="num">{{ s.scans | n }}</td>
+        <td class="num">{{ s.cartons | n }}</td>
+        <td class="num">
+          {% if s.mismatches %}
+            <span class="pill bad">{{ s.mismatches | n }}</span>
+          {% else %}
+            <span class="d0">0</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if s.status == 'active' %}<span class="pill ok">active</span>
+          {% elif s.status == 'draft' %}<span class="pill warn">draft</span>
+          {% else %}<span class="pill idle">closed</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="card-note">
+  A shipment stays <strong>draft</strong> until its size allocation balances
+  against the declared total. Only an active shipment can be scanned, because
+  the allocated size set is what constrains the recognition parse.
+</p>
+{% endif %}
+{% endblock %}

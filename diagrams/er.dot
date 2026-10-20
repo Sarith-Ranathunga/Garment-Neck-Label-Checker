@@ -1,0 +1,254 @@
+digraph ER {
+  graph [rankdir=LR, splines=spline, nodesep=0.30, ranksep=0.95, bgcolor="white",
+         fontname="Times New Roman", pad=0.25];
+  node  [shape=plaintext, fontname="Times New Roman", fontsize=11];
+  edge  [fontname="Times New Roman", fontsize=9, color="#333333", arrowsize=0.7];
+
+  // ------------------------------------------------- reference data -------
+  buyer [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>buyer</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">code</TD></TR>
+    <TR><TD ALIGN="LEFT">name</TD></TR></TABLE>>];
+
+  style_t [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>style</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK buyer_id</TD></TR>
+    <TR><TD ALIGN="LEFT">style_no</TD></TR></TABLE>>];
+
+  colour [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>colour</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">name</TD></TR></TABLE>>];
+
+  size_code [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>size_code</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">canonical</TD></TR>
+    <TR><TD ALIGN="LEFT">sort_order</TD></TR></TABLE>>];
+
+  bcmap [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#BFBFBF"><B>barcode_map</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">barcode</TD></TR>
+    <TR><TD ALIGN="LEFT">symbology</TD></TR>
+    <TR><TD ALIGN="LEFT">FK buyer_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK style_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK colour_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK size_code_id</TD></TR>
+    <TR><TD ALIGN="LEFT">sku</TD></TR>
+    <TR><TD ALIGN="LEFT"><I>opaque code = lookup only</I></TD></TR></TABLE>>];
+
+  bscm [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#BFBFBF"><B>buyer_size_code_map</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK buyer_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK size_code_id</TD></TR>
+    <TR><TD ALIGN="LEFT">buyer_notation</TD></TR></TABLE>>];
+
+  // ------------------------------------------------- order / shipment -----
+  po [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>purchase_order</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">po_number</TD></TR>
+    <TR><TD ALIGN="LEFT">FK buyer_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK style_id</TD></TR>
+    <TR><TD ALIGN="LEFT">total_qty</TD></TR></TABLE>>];
+
+  shipment [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>shipment</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK po_id</TD></TR>
+    <TR><TD ALIGN="LEFT">reference</TD></TR>
+    <TR><TD ALIGN="LEFT">ship_date</TD></TR>
+    <TR><TD ALIGN="LEFT">declared_qty</TD></TR>
+    <TR><TD ALIGN="LEFT">status</TD></TR></TABLE>>];
+
+  alloc [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#BFBFBF"><B>shipment_allocation</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK shipment_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK size_code_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK colour_id</TD></TR>
+    <TR><TD ALIGN="LEFT">qty</TD></TR></TABLE>>];
+
+  // ------------------------------------------------- operational ----------
+  checklist [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>checklist</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK shipment_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK style_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK colour_id</TD></TR>
+    <TR><TD ALIGN="LEFT">stage</TD></TR></TABLE>>];
+
+  cl_item [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>checklist_item</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK checklist_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK size_code_id</TD></TR>
+    <TR><TD ALIGN="LEFT">expected_qty</TD></TR>
+    <TR><TD ALIGN="LEFT">verified_qty</TD></TR></TABLE>>];
+
+  carton [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>carton</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK shipment_id</TD></TR>
+    <TR><TD ALIGN="LEFT">carton_no</TD></TR>
+    <TR><TD ALIGN="LEFT">net_weight_kg</TD></TR>
+    <TR><TD ALIGN="LEFT">gross_weight_kg</TD></TR></TABLE>>];
+
+  c_item [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>carton_item</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK carton_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK size_code_id</TD></TR>
+    <TR><TD ALIGN="LEFT">qty</TD></TR></TABLE>>];
+
+  // ------------------------------------------------- verification ---------
+  scan [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#BFBFBF"><B>scan_event</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">local_id, device_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK operator_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK checklist_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK carton_id</TD></TR>
+    <TR><TD ALIGN="LEFT">stage</TD></TR>
+    <TR><TD ALIGN="LEFT">hangtag_barcode</TD></TR>
+    <TR><TD ALIGN="LEFT">FK barcode_map_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK hangtag_size_id</TD></TR>
+    <TR><TD ALIGN="LEFT">captured_at</TD></TR>
+    <TR><TD ALIGN="LEFT">responded_at</TD></TR>
+    <TR><TD ALIGN="LEFT">displayed_at</TD></TR>
+    <TR><TD ALIGN="LEFT">sync_state</TD></TR>
+    <TR><TD ALIGN="LEFT">queued_at, synced_at</TD></TR>
+    <TR><TD ALIGN="LEFT">verdict</TD></TR>
+    <TR><TD ALIGN="LEFT">entry_method</TD></TR></TABLE>>];
+
+  recog [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#BFBFBF"><B>recognition_result</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK scan_event_id</TD></TR>
+    <TR><TD ALIGN="LEFT">engine, version</TD></TR>
+    <TR><TD ALIGN="LEFT">rotation_used</TD></TR>
+    <TR><TD ALIGN="LEFT">raw_text</TD></TR>
+    <TR><TD ALIGN="LEFT">FK parsed_size_id</TD></TR>
+    <TR><TD ALIGN="LEFT">confidence</TD></TR>
+    <TR><TD ALIGN="LEFT">outcome</TD></TR>
+    <TR><TD ALIGN="LEFT">duration_ms</TD></TR></TABLE>>];
+
+  mismatch [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>mismatch</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK scan_event_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK neck_size_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK hangtag_size_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK carton_id</TD></TR></TABLE>>];
+
+  exc [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#BFBFBF"><B>exception_event</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK scan_event_id</TD></TR>
+    <TR><TD ALIGN="LEFT"><B>FK recognition_result_id</B></TD></TR>
+    <TR><TD ALIGN="LEFT"><I>NULL = bypass (DP3)</I></TD></TR>
+    <TR><TD ALIGN="LEFT">FK entered_size_id</TD></TR>
+    <TR><TD ALIGN="LEFT">reason</TD></TR></TABLE>>];
+
+  // ------------------------------------------------- packing --------------
+  plist [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>packing_list</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK shipment_id</TD></TR>
+    <TR><TD ALIGN="LEFT">generated_at</TD></TR></TABLE>>];
+
+  pline [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>packing_list_line</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK packing_list_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK carton_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK size_code_id</TD></TR>
+    <TR><TD ALIGN="LEFT">qty</TD></TR></TABLE>>];
+
+  // ------------------------------------------------- access / logs --------
+  usr [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>app_user</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">username</TD></TR>
+    <TR><TD ALIGN="LEFT">FK role_id</TD></TR></TABLE>>];
+
+  role [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>role</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">code</TD></TR></TABLE>>];
+
+  assist [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>assistance_event</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK operator_id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK shipment_id</TD></TR>
+    <TR><TD ALIGN="LEFT">stage, cause</TD></TR></TABLE>>];
+
+  exportlog [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>export_log</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">FK shipment_id</TD></TR>
+    <TR><TD ALIGN="LEFT">file_path</TD></TR>
+    <TR><TD ALIGN="LEFT">row_counts</TD></TR>
+    <TR><TD ALIGN="LEFT">succeeded</TD></TR></TABLE>>];
+
+  backuplog [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">
+    <TR><TD BGCOLOR="#D9D9D9"><B>backup_log</B></TD></TR>
+    <TR><TD ALIGN="LEFT">PK id</TD></TR>
+    <TR><TD ALIGN="LEFT">file_path</TD></TR>
+    <TR><TD ALIGN="LEFT">row_counts</TD></TR>
+    <TR><TD ALIGN="LEFT">succeeded</TD></TR>
+    <TR><TD ALIGN="LEFT">verified_at</TD></TR></TABLE>>];
+
+  // ------------------------------------------------- relationships --------
+  buyer    -> style_t   [label="1..*"];
+  buyer    -> bscm      [label="1..*"];
+  size_code-> bscm      [label="1..*"];
+  buyer    -> po        [label="1..*"];
+  style_t  -> po        [label="1..*"];
+  po       -> shipment  [label="1..*"];
+  shipment -> alloc     [label="1..*"];
+  size_code-> alloc     [label="1..*"];
+  colour   -> alloc     [label="1..*"];
+
+  shipment -> checklist [label="1..*"];
+  style_t  -> checklist [label="1..*"];
+  colour   -> checklist [label="1..*"];
+  checklist-> cl_item   [label="1..*"];
+  size_code-> cl_item   [label="1..*"];
+
+  shipment -> carton    [label="1..*"];
+  carton   -> c_item    [label="1..*"];
+  size_code-> c_item    [label="1..*"];
+
+  checklist-> scan      [label="1..*"];
+  carton   -> scan      [label="0..*"];
+  usr      -> scan      [label="1..*"];
+  size_code-> scan      [label="0..*", style=dashed];
+  scan     -> recog     [label="1..1"];
+  size_code-> recog     [label="0..*", style=dashed];
+  scan     -> mismatch  [label="1..*"];
+  carton   -> mismatch  [label="0..*"];
+  scan     -> exc       [label="1..*"];
+  recog    -> exc       [label="0..*", style=dashed, color="#000000", penwidth=1.6];
+
+  shipment -> plist     [label="1..*"];
+  plist    -> pline     [label="1..*"];
+  carton   -> pline     [label="1..*"];
+  size_code-> pline     [label="1..*"];
+
+  buyer    -> bcmap     [label="1..*"];
+  style_t  -> bcmap     [label="1..*"];
+  colour   -> bcmap     [label="1..*"];
+  size_code-> bcmap     [label="1..*"];
+  bcmap    -> scan      [label="0..*", style=dashed, penwidth=1.6];
+
+  role     -> usr       [label="1..*"];
+  usr      -> assist    [label="1..*"];
+  shipment -> assist    [label="0..*"];
+  shipment -> exportlog [label="1..*"];
+}

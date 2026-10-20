@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext HTTP is permitted.
+
+  The host runs on an existing supervisor PC inside the factory LAN. It has no
+  domain name and no certificate, so HTTPS is not available to it, and the
+  server address is a setting the supervisor types in rather than a fixed host
+  this file could name.
+
+  Android matches these rules by hostname, not by address range, so there is
+  no way to write "private addresses only" here — a <domain> entry of
+  192.168.0.0 matches that one host and nothing else. Scoping it per-IP would
+  mean editing the APK whenever the host PC moves, which is exactly the
+  coupling the settings screen exists to avoid.
+
+  So this is a real limitation, stated rather than disguised: traffic between
+  the phones and the host is unencrypted on the factory LAN. It carries sizes,
+  barcodes and label photographs — no personal data, no credentials, since
+  there is no password to send (§4.9). Chapter 4 §4.9 records it and §6.4
+  lists TLS on the host as further work.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

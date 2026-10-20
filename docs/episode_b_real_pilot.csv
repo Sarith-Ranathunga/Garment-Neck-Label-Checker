@@ -1,0 +1,6 @@
+rate,garments,injected,detected,missed,false_positives,true_negatives,detection_rate,end_to_end_rate,false_positive_rate,notation_pairs,routed_to_fallback,fallback_on_injected,ocr_induced_fp
+0.005,11200,60,44,0,0,7786,1.0,0.7333333333333333,0.0,800,3370,16,0
+0.01,11200,110,80,0,0,7750,1.0,0.7272727272727273,0.0,815,3370,30,0
+0.02,11200,220,153,0,0,7677,1.0,0.6954545454545454,0.0,831,3370,67,0
+0.03,11200,340,238,0,0,7592,1.0,0.7,0.0,821,3370,102,0
+0.05,11200,560,374,0,0,7456,1.0,0.6678571428571428,0.0,810,3370,186,0
