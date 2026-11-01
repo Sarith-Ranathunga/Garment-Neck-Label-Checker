@@ -39,20 +39,24 @@
       </div>
       <div class="field-row">
         <div class="field">
-          <label class="fl" for="buyer_id">Buyer</label>
-          <select id="buyer_id" name="buyer_id" required>
-            {% for b in buyers %}
-            <option value="{{ b.id }}">{{ b.code }} &mdash; {{ b.name }}</option>
-            {% endfor %}
-          </select>
+          <label class="fl" for="buyer">Buyer</label>
+          <input type="text" id="buyer" name="buyer" required list="buyer-list"
+                 placeholder="HUEL" autocomplete="off">
+          <datalist id="buyer-list">
+            {% for b in buyers %}<option value="{{ b.code }}">{{ b.name }}</option>{% endfor %}
+          </datalist>
+          <p class="hint">Typed, not chosen. A name that does not exist yet
+            is created.</p>
         </div>
         <div class="field">
-          <label class="fl" for="style_id">Style</label>
-          <select id="style_id" name="style_id" required>
-            {% for s in styles %}
-            <option value="{{ s.id }}">{{ s.buyer_code }} &middot; {{ s.style_no }}</option>
-            {% endfor %}
-          </select>
+          <label class="fl" for="style_no">Style</label>
+          <input type="text" id="style_no" name="style_no" required
+                 list="style-list" placeholder="HUEL (women&rsquo;s)"
+                 autocomplete="off">
+          <datalist id="style-list">
+            {% for s in styles %}<option value="{{ s.style_no }}">{{ s.buyer_code }}</option>{% endfor %}
+          </datalist>
+          <p class="hint">Created under the buyer above if it is new.</p>
         </div>
       </div>
       <div class="field">
@@ -72,12 +76,14 @@
         </div>
       </div>
       <div class="field">
-        <label class="fl" for="created_by">Entered by</label>
-        <select id="created_by" name="created_by" required>
-          {% for m in managers %}
-          <option value="{{ m.id }}">{{ m.display_name }}</option>
-          {% endfor %}
-        </select>
+        <label class="fl" for="entered_by">Entered by</label>
+        <input type="text" id="entered_by" name="entered_by" required
+               list="manager-list" placeholder="A. Manager" autocomplete="off">
+        <datalist id="manager-list">
+          {% for m in managers %}<option value="{{ m.display_name }}">{% endfor %}
+        </datalist>
+        <p class="hint">A new name creates a manager account for
+          attribution. Phone accounts are made on the Users page.</p>
       </div>
       <button class="btn" type="submit">Create shipment</button>
     </form>
@@ -134,12 +140,15 @@
       <form method="post" action="/ui/setup/allocation">
         <input type="hidden" name="shipment_id" value="{{ selected.id }}">
         <div class="field">
-          <label class="fl" for="colour_id">Colour</label>
-          <select id="colour_id" name="colour_id" required>
-            {% for c in colours %}
-            <option value="{{ c.id }}">{{ c.name }}</option>
-            {% endfor %}
-          </select>
+          <label class="fl" for="colour">Colour</label>
+          <input type="text" id="colour" name="colour" required
+                 list="colour-list" placeholder="BLACK" autocomplete="off"
+                 value="{{ allocation[0].colour if allocation else '' }}">
+          <datalist id="colour-list">
+            {% for c in colours %}<option value="{{ c.name }}">{% endfor %}
+          </datalist>
+          <p class="hint">Stored in upper case, so BLACK and Black are one
+            colour.</p>
         </div>
 
         <label class="fl">Quantity per size</label>

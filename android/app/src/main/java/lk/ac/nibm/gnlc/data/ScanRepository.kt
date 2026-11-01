@@ -478,6 +478,16 @@ internal fun Exception.describe(): String = when (this) {
     is java.net.SocketTimeoutException -> "Timed out"
     is java.net.UnknownHostException -> "Host not found"
     is java.net.ConnectException -> "Cannot reach the server"
-    is retrofit2.HttpException -> "Server said ${code()}"
+    // 403 is the shipment-assignment check on the host. It is named rather
+    // than left as "Server said 403" because it is the one server error with
+    // a fix the operator can ask for: the supervisor ticks them on that
+    // shipment and the queued scan then goes through on the next retry. The
+    // row is kept and retried like any other, not abandoned — abandoning it
+    // would drop a garment from the count.
+    is retrofit2.HttpException -> when (code()) {
+        403 -> "Not assigned to this shipment — ask your supervisor"
+        401 -> "Signed out on the host — sign in again"
+        else -> "Server said ${code()}"
+    }
     else -> this::class.java.simpleName + (message?.let { ": $it" } ?: "")
 }

@@ -31,8 +31,16 @@ interface Api {
     @GET("api/sizes")
     suspend fun sizes(): List<SizeDto>
 
+    /**
+     * `operatorId` filters to shipments this operator is assigned to, so the
+     * list never offers work /api/scan would refuse with a 403. A shipment
+     * nobody has been assigned to is shown to everyone.
+     */
     @GET("api/checklists")
-    suspend fun checklists(@Query("stage") stage: String? = null): List<ChecklistDto>
+    suspend fun checklists(
+        @Query("stage") stage: String? = null,
+        @Query("operator_id") operatorId: Int? = null,
+    ): List<ChecklistDto>
 
     @GET("api/checklist/{id}/bundle")
     suspend fun bundle(@Path("id") checklistId: Int): ChecklistBundleDto

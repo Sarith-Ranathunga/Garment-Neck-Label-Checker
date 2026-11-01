@@ -3,30 +3,42 @@ package lk.ac.nibm.gnlc.ui
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
 import lk.ac.nibm.gnlc.R
 import lk.ac.nibm.gnlc.databinding.ActivitySignInBinding
 import lk.ac.nibm.gnlc.net.ApiProvider
 import lk.ac.nibm.gnlc.net.LoginRequest
-import lk.ac.nibm.gnlc.net.UserDto
 import lk.ac.nibm.gnlc.util.Prefs
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 
 /**
  * Who is scanning.
  *
- * There is no password, and that is a declared limitation rather than an
- * omission. This is a shared floor handset operated with gloves on, and a
- * password prompt at every shift change is exactly the friction DP3 predicts
- * will be worked around — in this case by one operator's account being used
- * all day, which would make the per-operator figures in §5.6 meaningless. The
- * device is inside the factory network and the account can only scan. §4.9
- * states it; §6.4 lists authentication as further work.
+ * This screen used to list every active account as a button and sign the
+ * operator in on one tap, with no password. That was a declared limitation
+ * (§4.9, §6.4) and it has now been closed, because the picker had a second
+ * problem beyond authentication: two people on the floor share a display
+ * name, so the list showed two identical buttons and the per-operator figures
+ * in §5.6 were only as reliable as the operator's guess about which one was
+ * theirs. A username is unique by construction; a display name is not.
  *
- * The operator still has to be identified, because O4's before-and-after
- * comparison is per-operator and an anonymous scan cannot be attributed.
+ * The cost is the friction DP3 warns about — a password prompt at a shift
+ * change is exactly the kind of step that gets worked around, in this case by
+ * one account staying signed in all day. Three things keep that cost low:
+ * the sign-in survives the app being closed, so it is typed once per shift
+ * and not once per garment; the keyboard opens on the username field with the
+ * password field one tap away; and the supervisor sets short passwords (four
+ * characters is the floor) precisely because this is a gloved handset on a
+ * factory floor rather than a bank.
+ *
+ * The password is sent to the host and never stored on the phone. Only the
+ * operator's id and display name are kept, which is what the scan payload
+ * needs. Note that the handsets reach the host over plain HTTP, so the
+ * password crosses the factory LAN in the clear — the hash protects the
+ * stored password, not the wire. TLS on the host remains further work.
  */
 class SignInActivity : AppCompatActivity() {
 
@@ -42,85 +54,88 @@ class SignInActivity : AppCompatActivity() {
         b.settingsButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
-        b.retryButton.setOnClickListener { load() }
+        b.signInButton.setOnClickListener { signIn() }
+
+        // Enter on the password field submits, so the operator never has to
+        // dismiss the keyboard to find the button behind it.
+        b.passwordInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) { signIn(); true } else false
+        }
     }
 
     override fun onResume() {
         super.onResume()
         b.serverLine.text = if (prefs.isConfigured) prefs.baseUrl else "—"
-        load()
-    }
+        b.passwordInput.setText("")
 
-    private fun load() {
-        b.operatorContainer.removeAllViews()
-        b.retryButton.visibility = View.GONE
+        // The username is left as typed. The same operator signs in on the
+        // same handset shift after shift, and retyping it each time is the
+        // friction, not the password.
+        b.usernameInput.setText(prefs.lastUsername)
 
         if (!prefs.isConfigured) {
-            showNote(getString(R.string.server_not_set))
-            return
+            setFormEnabled(false)
+            note(getString(R.string.server_not_set))
+        } else {
+            setFormEnabled(true)
+            note(null)
+        }
+    }
+
+    private fun signIn() {
+        val username = b.usernameInput.text.toString().trim()
+        val password = b.passwordInput.text.toString()
+
+        if (username.isEmpty() || password.isEmpty()) {
+            note(getString(R.string.sign_in_incomplete)); return
         }
         val api = ApiProvider.get(this) ?: run {
-            showNote(getString(R.string.server_not_set)); return
+            note(getString(R.string.server_not_set)); return
         }
 
-        showNote(null)
+        setFormEnabled(false)
+        note(getString(R.string.signing_in))
+
         lifecycleScope.launch {
-            val people = runCatching { api.operators() }.getOrNull()
-            if (people == null) {
-                showNote(
-                    "Cannot reach the host at ${prefs.baseUrl}\n\n" +
-                        "Check that the supervisor PC is on and that this " +
-                        "phone is on the factory WiFi."
+            val result = runCatching {
+                api.login(LoginRequest(username, password, prefs.deviceId))
+            }
+            val user = result.getOrNull()
+
+            if (user == null) {
+                val cause = result.exceptionOrNull()
+                // 401 is a wrong username or password; the host deliberately
+                // does not say which, so neither does this screen. Anything
+                // else is the network or the host being down, which is a
+                // different problem with a different fix.
+                note(
+                    if (cause is HttpException && cause.code() == 401) {
+                        getString(R.string.sign_in_rejected)
+                    } else {
+                        getString(R.string.host_unreachable, prefs.baseUrl)
+                    }
                 )
-                b.retryButton.visibility = View.VISIBLE
+                setFormEnabled(true)
+                b.passwordInput.setText("")
                 return@launch
             }
-            if (people.isEmpty()) {
-                showNote("The host has no active operators set up.")
-                return@launch
-            }
-            people.forEach { addOperatorButton(it) }
-        }
-    }
 
-    private fun addOperatorButton(user: UserDto) {
-        val button = MaterialButton(
-            this, null,
-            com.google.android.material.R.attr.materialButtonOutlinedStyle,
-        ).apply {
-            text = user.displayName
-            textSize = 17f
-            minHeight = dp(64)
-            isAllCaps = false
-            setOnClickListener { signIn(user) }
-        }
-        val lp = android.widget.LinearLayout.LayoutParams(
-            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
-        ).apply { bottomMargin = dp(8) }
-        b.operatorContainer.addView(button, lp)
-    }
-
-    private fun signIn(user: UserDto) {
-        val api = ApiProvider.get(this) ?: return
-        lifecycleScope.launch {
-            // The call confirms the account is still active on the host before
-            // the phone starts attributing scans to it.
-            val confirmed = runCatching {
-                api.login(LoginRequest(user.username, prefs.deviceId))
-            }.getOrNull() ?: user
-
-            prefs.operatorId = confirmed.id
-            prefs.operatorName = confirmed.displayName
+            prefs.operatorId = user.id
+            prefs.operatorName = user.displayName
+            prefs.lastUsername = user.username
+            b.passwordInput.setText("")
             startActivity(Intent(this@SignInActivity, ChecklistActivity::class.java))
         }
     }
 
-    private fun showNote(text: String?) {
-        b.emptyNote.text = text.orEmpty()
-        b.emptyNote.visibility = if (text == null) View.GONE else View.VISIBLE
+    private fun setFormEnabled(enabled: Boolean) {
+        b.usernameInput.isEnabled = enabled
+        b.passwordInput.isEnabled = enabled
+        b.signInButton.isEnabled = enabled
     }
 
-    private fun dp(value: Int): Int =
-        (value * resources.displayMetrics.density).toInt()
+    private fun note(text: String?) {
+        b.noteLine.text = text.orEmpty()
+        b.noteLine.visibility = if (text == null) View.GONE else View.VISIBLE
+    }
 }

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% set nav = 'users' %}
+{% block title %}Users{% endblock %}
+
+{% block head %}
+<style>
+  /* The assignment grid. Four or five names per shipment, so a checkbox
+     grid rather than a transfer list: the supervisor sees every operator
+     and every tick at once, and saving is one button per shipment. */
+  .chk-grid {
+    display: grid; gap: 9px 18px; margin-bottom: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+  .chk { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+  .chk input { width: 18px; height: 18px; }
+  .chk code { font-size: 12px; color: var(--muted); }
+  .inline { display: inline-flex; gap: 6px; align-items: center; }
+  .inline input[type=password] { width: 112px; padding: 5px 8px; font-size: 13px; }
+  /* nowrap keeps Reset and Deactivate on one line, so a row of accounts is
+     one line tall instead of two. */
+  .row-actions { display: flex; gap: 8px; flex-wrap: nowrap; align-items: center; }
+
+  /* The account table carries five columns and two controls, so it gets the
+     room; the create form is a fixed, narrow column beside it. */
+  .users-grid { grid-template-columns: 350px 1fr; }
+  @media (max-width: 1100px) { .users-grid { grid-template-columns: 1fr; } }
+  tr.off td { opacity: .55; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="page-head">
+  <div>
+    <h1>Users</h1>
+    <p class="sub">Android accounts, and who may scan which shipment.</p>
+  </div>
+</div>
+
+{% if created %}<div class="note ok">Saved: {{ created }}</div>{% endif %}
+{% if error %}<div class="note bad">{{ error }}</div>{% endif %}
+
+{#
+  Why a username and not the display name: two people on the floor share a
+  name, and the per-operator comparison in 5.6 keys on the account id. A
+  list of display names made the operator guess which row was theirs.
+#}
+<div class="note">
+  A password is stored as a bcrypt hash and is never shown again &mdash; a
+  forgotten password is <strong>reset, not recovered</strong>. Two people may
+  share a display name, so the <strong>username</strong> is what the phone
+  signs in with and what every scan is attributed to.
+</div>
+
+<div class="grid two users-grid">
+
+  {# ====================================================== new account === #}
+  <div class="card">
+    <h2>New Android user</h2>
+    <form method="post" action="/ui/users/create">
+      <div class="field">
+        <label class="fl" for="username">Username</label>
+        <input type="text" id="username" name="username" required
+               placeholder="w3" autocomplete="off" maxlength="40">
+        <p class="hint">
+          Lower case, no spaces &mdash; this is what the operator types on the
+          phone. Capitals and spaces are stripped if you type them.
+        </p>
+      </div>
+      <div class="field">
+        <label class="fl" for="display_name">Display name</label>
+        <input type="text" id="display_name" name="display_name" required
+               placeholder="E. Silva" autocomplete="off">
+        <p class="hint">
+          Shown on the phone and on the supervisor counts. It may repeat; the
+          username may not.
+        </p>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="fl" for="role_code">Role</label>
+          <select id="role_code" name="role_code" required>
+            {% for r in roles %}
+            <option value="{{ r.code }}"
+                    {% if r.code == 'worker' %}selected{% endif %}>
+              {{ r.code }}</option>
+            {% endfor %}
+          </select>
+          <p class="hint">Only worker and supervisor can scan.</p>
+        </div>
+        <div class="field">
+          <label class="fl" for="password">Password</label>
+          <input type="password" id="password" name="password" required
+                 minlength="4" maxlength="72" autocomplete="new-password">
+          <p class="hint">At least 4 characters. Set per user.</p>
+        </div>
+      </div>
+      <button class="btn" type="submit">Create user</button>
+    </form>
+  </div>
+
+  {# ========================================================= accounts === #}
+  <div class="card">
+    <h2>Accounts</h2>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Username</th><th>Name</th><th>Role</th>
+          <th class="num">Shipments</th><th>Password</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for u in people %}
+        <tr class="{{ '' if u.active else 'off' }}">
+          <td><span class="mono">{{ u.username }}</span></td>
+          <td>{{ u.display_name }}
+            {% if not u.active %}<span class="pill idle">inactive</span>{% endif %}
+          </td>
+          <td>{{ u.role }}</td>
+          <td class="num">{{ u.shipments }}</td>
+          <td>
+            {% if u.has_password %}<span class="pill ok">set</span>
+            {% else %}<span class="pill bad">not set</span>{% endif %}
+          </td>
+          <td class="row-actions">
+            <form method="post" action="/ui/users/{{ u.id }}/password"
+                  class="inline">
+              <input type="password" name="password" required minlength="4"
+                     maxlength="72" placeholder="new password"
+                     autocomplete="new-password">
+              <button class="btn small quiet" type="submit">Reset</button>
+            </form>
+            <form method="post" action="/ui/users/{{ u.id }}/active"
+                  class="inline">
+              <input type="hidden" name="active"
+                     value="{{ '0' if u.active else '1' }}">
+              <button class="btn small {{ 'danger' if u.active else 'ghost' }}"
+                      type="submit">
+                {{ 'Deactivate' if u.active else 'Reactivate' }}</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty">No accounts yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="hint">
+      Accounts are deactivated, never deleted: every scan event references its
+      operator, and the before-and-after comparison needs the row to stay.
+    </p>
+  </div>
+</div>
+
+{# =============================================== shipment assignment === #}
+<div class="page-head" style="margin-top:30px">
+  <div>
+    <h2>Who may scan which shipment</h2>
+    <p class="sub">
+      This is enforced on the host, not just hidden on the phone. An operator
+      who is not ticked does not see that shipment&rsquo;s checklists, and a
+      scan posted against it is refused.
+    </p>
+  </div>
+</div>
+
+<div class="note">
+  A shipment with <strong>nobody ticked</strong> is open to everyone. That is
+  deliberate: a control that stops a line on the morning it is installed gets
+  switched off, so assignment restricts a shipment only once you have
+  assigned somebody to it.
+</div>
+
+{% for s in shipments %}
+<div class="card" id="shipment-{{ s.id }}" style="margin-bottom:14px">
+  <h2>{{ s.reference }}
+    <span class="pill {{ 'ok' if s.status == 'active' else 'idle' }}">
+      {{ s.status }}</span></h2>
+  <form method="post" action="/ui/shipment/{{ s.id }}/operators">
+    <div class="chk-grid">
+      {% for u in people if u.active and u.role in ('worker', 'supervisor') %}
+        <label class="chk">
+          <input type="checkbox" name="user_id" value="{{ u.id }}"
+                 {% if (s.id, u.id) in assigned %}checked{% endif %}>
+          <span>{{ u.display_name }} <code>{{ u.username }}</code></span>
+        </label>
+      {% else %}
+        <p class="hint">No active operators to assign.</p>
+      {% endfor %}
+    </div>
+    <button class="btn" type="submit">Save assignment</button>
+  </form>
+</div>
+{% else %}
+<div class="note">No open shipments.</div>
+{% endfor %}
+{% endblock %}

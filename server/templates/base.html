@@ -208,7 +208,8 @@
       letter-spacing: .06em; color: var(--muted); font-weight: 700;
       margin: 0 0 5px;
     }
-    input[type=text], input[type=number], input[type=date], select, textarea {
+    input[type=text], input[type=number], input[type=date],
+    input[type=password], select, textarea {
       width: 100%; padding: 9px 11px; font-size: 15px; font-family: inherit;
       border: 1px solid var(--line); border-radius: 7px; background: #fff;
       color: var(--ink);
@@ -253,6 +254,7 @@
       <nav class="top-nav">
         <a href="/ui" class="{{ 'on' if nav == 'shipments' }}">Shipments</a>
         <a href="/ui/setup" class="{{ 'on' if nav == 'setup' }}">Setup</a>
+        <a href="/ui/users" class="{{ 'on' if nav == 'users' }}">Users</a>
         <a href="/ui/evaluation" class="{{ 'on' if nav == 'evaluation' }}">Evaluation</a>
         <a href="/docs">API</a>
       </nav>

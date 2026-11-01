@@ -31,6 +31,8 @@ Three roles use it:
 
 from __future__ import annotations
 
+import re
+
 from datetime import datetime
 from pathlib import Path
 
@@ -39,6 +41,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .db import cursor
+from .security import (PasswordError, hash_password)
 
 TEMPLATES = Jinja2Templates(
     directory=str(Path(__file__).resolve().parents[1] / "templates"))
@@ -398,6 +401,106 @@ def resolve_mismatch(
 
 # ==================================================================== setup ==
 
+
+# ----------------------------------------------- resolve-or-create helpers --
+#
+# The Setup form takes typed names rather than ids, so the manager can add a
+# buyer, style, colour or manager without SQL. Matching is case-insensitive
+# and whitespace-trimmed on purpose: "Huel", "HUEL " and "huel" are one buyer,
+# not three. Only a genuinely new name creates a row, because a duplicate
+# buyer silently splits a shipment's history in two.
+
+
+def _norm(value: str) -> str:
+    return " ".join((value or "").split())
+
+
+def _buyer_id(cur, name: str) -> int:
+    """Find a buyer by code or name, creating it if the name is new."""
+    clean = _norm(name)
+    if not clean:
+        raise HTTPException(422, "buyer is required")
+    cur.execute("SELECT id FROM buyer WHERE upper(code) = upper(%s) "
+                "OR upper(name) = upper(%s) LIMIT 1", (clean, clean))
+    row = cur.fetchone()
+    if row:
+        return row["id"]
+    code = clean.split()[0].upper()[:16]
+    cur.execute("SELECT id FROM buyer WHERE upper(code) = upper(%s)", (code,))
+    if cur.fetchone():                      # same code, different full name
+        code = f"{code}-{abs(hash(clean)) % 1000:03d}"
+    cur.execute("INSERT INTO buyer (code, name) VALUES (%s, %s) RETURNING id",
+                (code, clean))
+    return cur.fetchone()["id"]
+
+
+def _style_id(cur, style_no: str, buyer_id: int) -> int:
+    """Find a style for this buyer, creating it if the number is new."""
+    clean = _norm(style_no)
+    if not clean:
+        raise HTTPException(422, "style is required")
+    cur.execute("SELECT id FROM style WHERE buyer_id = %s "
+                "AND upper(style_no) = upper(%s)", (buyer_id, clean))
+    row = cur.fetchone()
+    if row:
+        return row["id"]
+    cur.execute("INSERT INTO style (buyer_id, style_no, description) "
+                "VALUES (%s, %s, %s) RETURNING id", (buyer_id, clean, clean))
+    return cur.fetchone()["id"]
+
+
+def _colour_id(cur, name: str) -> int:
+    """Find a colour, creating it if the name is new."""
+    clean = _norm(name).upper()
+    if not clean:
+        raise HTTPException(422, "colour is required")
+    cur.execute("SELECT id FROM colour WHERE upper(name) = %s", (clean,))
+    row = cur.fetchone()
+    if row:
+        return row["id"]
+    cur.execute("INSERT INTO colour (name) VALUES (%s) RETURNING id", (clean,))
+    return cur.fetchone()["id"]
+
+
+def _manager_id(cur, display_name: str) -> int:
+    """
+    Find the manager who entered this shipment, creating the account if the
+    name is new. A created account gets no usable password: it exists to
+    attribute the entry, and anyone who needs to sign in on a phone is made
+    properly from the Users page.
+    """
+    clean = _norm(display_name)
+    if not clean:
+        raise HTTPException(422, "entered by is required")
+    cur.execute("SELECT id FROM app_user WHERE upper(display_name) = upper(%s) "
+                "AND active LIMIT 1", (clean,))
+    row = cur.fetchone()
+    if row:
+        return row["id"]
+    cur.execute("SELECT id FROM role WHERE code = 'manager'")
+    role = cur.fetchone()
+    if role is None:
+        raise HTTPException(500, "no manager role defined")
+    # A counter rather than a hash of the name: Python randomises string
+    # hashing per process, so hash() would pick a different suffix on every
+    # restart and could still collide, which is an insert-time 500 in front
+    # of a manager who only mistyped a name.
+    base = re.sub(r"[^a-z0-9]+", "", clean.lower())[:14] or "mgr"
+    username = base
+    suffix = 2
+    while True:
+        cur.execute("SELECT 1 FROM app_user WHERE username = %s", (username,))
+        if cur.fetchone() is None:
+            break
+        username = f"{base[:12]}{suffix}"
+        suffix += 1
+    cur.execute(
+        """INSERT INTO app_user (username, display_name, role_id, password_hash)
+           VALUES (%s, %s, %s, 'x') RETURNING id""",
+        (username, clean, role["id"]))
+    return cur.fetchone()["id"]
+
+
 @router.get("/setup", response_class=HTMLResponse)
 def setup(request: Request, shipment_id: int | None = None) -> HTMLResponse:
     """The manager's screen: purchase order, shipment, size allocation."""
@@ -454,12 +557,12 @@ def setup(request: Request, shipment_id: int | None = None) -> HTMLResponse:
 @router.post("/setup/shipment")
 def create_shipment(
     po_number: str = Form(...),
-    buyer_id: int = Form(...),
-    style_id: int = Form(...),
+    buyer: str = Form(...),
+    style_no: str = Form(...),
     reference: str = Form(...),
     ship_date: str = Form(...),
     declared_qty: int = Form(...),
-    created_by: int = Form(...),
+    entered_by: str = Form(...),
 ) -> RedirectResponse:
     """
     One purchase order, one shipment.
@@ -471,6 +574,11 @@ def create_shipment(
     if declared_qty <= 0:
         raise HTTPException(422, "declared quantity must be positive")
     with cursor(commit=True) as cur:
+        # Typed names, resolved to ids and created when genuinely new.
+        buyer_id = _buyer_id(cur, buyer)
+        style_id = _style_id(cur, style_no, buyer_id)
+        created_by = _manager_id(cur, entered_by)
+
         cur.execute("SELECT id, total_qty FROM purchase_order WHERE po_number = %s",
                     (po_number.strip(),))
         po = cur.fetchone()
@@ -515,7 +623,7 @@ async def set_allocation(request: Request) -> RedirectResponse:
     """
     form = await request.form()
     shipment_id = int(str(form.get("shipment_id", "0")))
-    colour_id = int(str(form.get("colour_id", "0")))
+    colour_name = str(form.get("colour", "")).strip()
 
     rows: list[tuple[str, int]] = []
     for key, value in form.multi_items():
@@ -542,6 +650,8 @@ async def set_allocation(request: Request) -> RedirectResponse:
         if ship["status"] == "closed":
             raise HTTPException(409, "shipment is closed")
 
+        colour_id = _colour_id(cur, colour_name)
+
         total = sum(q for _, q in rows)
         if total != ship["declared_qty"]:
             raise HTTPException(
@@ -565,6 +675,142 @@ async def set_allocation(request: Request) -> RedirectResponse:
             "AND status = 'draft'", (shipment_id,))
     return RedirectResponse(f"/ui/shipment/{shipment_id}", status_code=303)
 
+
+
+# ================================================================== users ===
+#
+# Android accounts are created here rather than in SQL, because the people
+# who need them are added by a supervisor during a shift, not by whoever has
+# a psql prompt. Two things this page is careful about:
+#
+#  * Display names repeat. Two people called "D. Perera" are two accounts,
+#    so the username is the identity and the display name is only a label.
+#    Per-operator figures key on the id, so a shared account would make the
+#    §5.6 comparison meaningless.
+#
+#  * The password is set here and stored as a bcrypt hash. It is never read
+#    back, so a forgotten password is reset, not recovered.
+
+
+@router.get("/users", response_class=HTMLResponse)
+def users_page(request: Request, created: str | None = None,
+               error: str | None = None) -> HTMLResponse:
+    """Android accounts, and who may scan which shipment."""
+    with cursor() as cur:
+        cur.execute(
+            """SELECT u.id, u.username, u.display_name, u.active,
+                      r.code AS role,
+                      (u.password_hash <> 'x') AS has_password,
+                      (SELECT count(*) FROM shipment_operator so
+                        WHERE so.user_id = u.id) AS shipments
+                 FROM app_user u JOIN role r ON r.id = u.role_id
+                ORDER BY u.active DESC, r.code, u.display_name""")
+        people = cur.fetchall()
+        cur.execute("SELECT id, code, description FROM role ORDER BY id")
+        roles = cur.fetchall()
+        cur.execute(
+            """SELECT s.id, s.reference, s.status::text AS status
+                 FROM shipment s WHERE s.status <> 'closed'
+                ORDER BY s.id DESC LIMIT 30""")
+        shipments_ = cur.fetchall()
+        cur.execute(
+            """SELECT so.shipment_id, so.user_id FROM shipment_operator so""")
+        assigned = {(r["shipment_id"], r["user_id"]) for r in cur.fetchall()}
+    return _page(request, "users.html", people=people, roles=roles,
+                 shipments=shipments_, assigned=assigned,
+                 created=created, error=error, nav="users")
+
+
+@router.post("/users/create")
+def create_user(
+    username: str = Form(...),
+    display_name: str = Form(...),
+    role_code: str = Form(...),
+    password: str = Form(...),
+) -> RedirectResponse:
+    """Create an Android account with a password the supervisor chooses."""
+    uname = _norm(username).lower().replace(" ", "")
+    dname = _norm(display_name)
+    if not uname or not dname:
+        return RedirectResponse(
+            "/ui/users?error=Username+and+display+name+are+required",
+            status_code=303)
+    try:
+        pw_hash = hash_password(password)
+    except PasswordError as exc:
+        return RedirectResponse(f"/ui/users?error={exc}", status_code=303)
+
+    with cursor(commit=True) as cur:
+        cur.execute("SELECT 1 FROM app_user WHERE username = %s", (uname,))
+        if cur.fetchone():
+            return RedirectResponse(
+                f"/ui/users?error=Username+{uname}+already+exists",
+                status_code=303)
+        cur.execute("SELECT id FROM role WHERE code = %s", (role_code,))
+        role = cur.fetchone()
+        if role is None:
+            return RedirectResponse("/ui/users?error=Unknown+role",
+                                    status_code=303)
+        cur.execute(
+            """INSERT INTO app_user (username, display_name, role_id,
+                                     password_hash)
+               VALUES (%s, %s, %s, %s)""",
+            (uname, dname, role["id"], pw_hash))
+    return RedirectResponse(f"/ui/users?created={uname}", status_code=303)
+
+
+@router.post("/users/{user_id}/password")
+def set_user_password(user_id: int, password: str = Form(...)
+                      ) -> RedirectResponse:
+    """Reset a password. The old one is not recoverable and is not shown."""
+    try:
+        pw_hash = hash_password(password)
+    except PasswordError as exc:
+        return RedirectResponse(f"/ui/users?error={exc}", status_code=303)
+    with cursor(commit=True) as cur:
+        cur.execute("UPDATE app_user SET password_hash = %s WHERE id = %s",
+                    (pw_hash, user_id))
+    return RedirectResponse("/ui/users?created=password+changed",
+                            status_code=303)
+
+
+@router.post("/users/{user_id}/active")
+def set_user_active(user_id: int, active: str = Form("0")
+                    ) -> RedirectResponse:
+    """
+    Deactivate rather than delete. Scan events reference the operator, and
+    the per-operator comparison needs the row to stay.
+    """
+    with cursor(commit=True) as cur:
+        cur.execute("UPDATE app_user SET active = %s WHERE id = %s",
+                    (active == "1", user_id))
+    return RedirectResponse("/ui/users", status_code=303)
+
+
+@router.post("/shipment/{shipment_id}/operators")
+async def set_shipment_operators(shipment_id: int, request: Request
+                                 ) -> RedirectResponse:
+    """
+    Replace the set of operators allowed to scan this shipment.
+
+    Enforced, not advisory: client_api hides the checklists and main.py
+    refuses the scan when the operator is not on this list.
+    """
+    form = await request.form()
+    wanted = {int(v) for v in form.getlist("user_id")}
+    with cursor(commit=True) as cur:
+        cur.execute("SELECT 1 FROM shipment WHERE id = %s", (shipment_id,))
+        if cur.fetchone() is None:
+            raise HTTPException(404, f"no shipment {shipment_id}")
+        cur.execute("DELETE FROM shipment_operator WHERE shipment_id = %s",
+                    (shipment_id,))
+        for uid in sorted(wanted):
+            cur.execute(
+                """INSERT INTO shipment_operator (shipment_id, user_id)
+                   VALUES (%s, %s) ON CONFLICT DO NOTHING""",
+                (shipment_id, uid))
+    return RedirectResponse(f"/ui/users#shipment-{shipment_id}",
+                            status_code=303)
 
 # =============================================================== documents ===
 

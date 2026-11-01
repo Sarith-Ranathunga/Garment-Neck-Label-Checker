@@ -4,7 +4,15 @@
 
     <!-- Sign in -->
     <string name="sign_in">Sign in</string>
-    <string name="choose_operator">Who is scanning?</string>
+    <string name="sign_in_prompt">Sign in to scan</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="sign_in_help">Use the username and password the supervisor created for you on the host PC. Not your name — two people can share a name.</string>
+    <string name="sign_in_incomplete">Enter both the username and the password.</string>
+    <string name="signing_in">Signing in…</string>
+    <string name="sign_in_rejected">Wrong username or password. Ask the supervisor to reset it if you are sure.</string>
+    <string name="host_unreachable">Cannot reach the host at %1$s\n\nCheck that the supervisor PC is on and that this phone is on the factory WiFi.</string>
+    <string name="not_assigned">You are not assigned to this shipment. Ask your supervisor.</string>
     <string name="server_not_set">Server address is not set. Open settings first.</string>
     <string name="settings">Settings</string>
     <string name="retry">Retry</string>

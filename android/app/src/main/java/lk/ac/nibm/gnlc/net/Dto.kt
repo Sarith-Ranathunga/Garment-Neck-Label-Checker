@@ -16,8 +16,14 @@ import com.google.gson.annotations.SerializedName
 
 // ------------------------------------------------------------------ sign in --
 
+/**
+ * `password` is sent as typed and is not kept on the device. The host hashes
+ * it with bcrypt; see server/app/security.py for why that protects the store
+ * and not the wire.
+ */
 data class LoginRequest(
     @SerializedName("username") val username: String,
+    @SerializedName("password") val password: String,
     @SerializedName("device_id") val deviceId: String,
 )
 

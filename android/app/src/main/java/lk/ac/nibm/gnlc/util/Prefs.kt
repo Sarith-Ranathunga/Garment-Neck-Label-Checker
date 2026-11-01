@@ -46,6 +46,16 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_OPERATOR_NAME, "").orEmpty()
         set(value) = sp.edit().putString(KEY_OPERATOR_NAME, value).apply()
 
+    /**
+     * The last username that signed in successfully, pre-filled on the sign-in
+     * screen. Kept across sign-out on purpose: the same operator uses the same
+     * handset shift after shift, and the password is what the control needs
+     * retyped, not the name. No password is ever stored.
+     */
+    var lastUsername: String
+        get() = sp.getString(KEY_LAST_USERNAME, "").orEmpty()
+        set(value) = sp.edit().putString(KEY_LAST_USERNAME, value).apply()
+
     val isConfigured: Boolean get() = baseUrl.isNotBlank()
     val isSignedIn: Boolean get() = operatorId > 0
 
@@ -58,6 +68,7 @@ class Prefs(context: Context) {
         private const val KEY_DEVICE_ID = "device_id"
         private const val KEY_OPERATOR_ID = "operator_id"
         private const val KEY_OPERATOR_NAME = "operator_name"
+        private const val KEY_LAST_USERNAME = "last_username"
 
         /**
          * Accepts what a supervisor will actually type.

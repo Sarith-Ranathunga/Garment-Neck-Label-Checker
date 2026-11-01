@@ -70,7 +70,13 @@ class ChecklistActivity : AppCompatActivity() {
         note(null)
 
         lifecycleScope.launch {
-            val lists = runCatching { api.checklists() }.getOrNull()
+            // The operator id is sent so the host returns only shipments this
+            // operator is assigned to. Without it the list would show work
+            // that /api/scan refuses, which is a dead end discovered with a
+            // garment already in hand.
+            val lists = runCatching {
+                api.checklists(operatorId = prefs.operatorId)
+            }.getOrNull()
             if (lists == null) {
                 note(
                     "Cannot reach the host.\n\n" +

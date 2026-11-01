@@ -34,6 +34,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from .db import cursor
+from .security import verify_password
 
 router = APIRouter(prefix="/api", tags=["client"])
 
@@ -43,6 +44,7 @@ router = APIRouter(prefix="/api", tags=["client"])
 class LoginRequest(BaseModel):
     username: str
     device_id: str
+    password: str = ""        # required from app build 2 onward
 
 
 class UserOut(BaseModel):
@@ -55,29 +57,50 @@ class UserOut(BaseModel):
 @router.post("/login", response_model=UserOut)
 def login(req: LoginRequest) -> UserOut:
     """
-    Operator sign-in by username.
+    Operator sign-in by username and password.
 
-    There is no password check and that is a deliberate, declared limitation,
-    not an oversight: the phone is a shared floor device handled with gloves,
-    and a password prompt at every shift change is the kind of friction DP3
-    predicts will get bypassed. The device is inside the factory network and
-    the account only permits scanning. §4.9 states this and §6.4 lists
-    authentication as further work.
+    This replaces the username-only sign-in the earlier build used. The
+    reason for the change is that a display name is not an identity: two
+    people called "D. Perera" are two accounts, and the per-operator
+    comparison keys on the id, so an account picked from a list and shared
+    across a shift makes those figures meaningless.
+
+    The password is checked against a bcrypt hash. It is not, however, a
+    secure channel: the phones reach the host over plain HTTP, so the
+    password crosses the factory LAN in the clear. Hashing protects the
+    stored value, not the wire. TLS on the host remains outstanding.
+
+    DP3 is in tension with this. A prompt at every shift change is friction,
+    and friction is what DP3 predicts gets bypassed. The sign-in is therefore
+    once per phone per shift, not per scan.
     """
     with cursor() as cur:
         cur.execute(
-            """SELECT u.id, u.username, u.display_name, r.code AS role
+            """SELECT u.id, u.username, u.display_name, u.password_hash,
+                      r.code AS role
                FROM app_user u JOIN role r ON r.id = u.role_id
-               WHERE u.username = %s AND u.active""", (req.username,))
+               WHERE u.username = %s AND u.active""", (req.username.strip(),))
         row = cur.fetchone()
-    if row is None:
-        raise HTTPException(404, f"no active user {req.username!r}")
-    return UserOut(**row)
+
+    # One message for both failures, so the response does not reveal which
+    # usernames exist.
+    if row is None or not verify_password(req.password, row["password_hash"]):
+        raise HTTPException(401, "Wrong username or password.")
+
+    return UserOut(id=row["id"], username=row["username"],
+                   display_name=row["display_name"], role=row["role"])
 
 
 @router.get("/operators", response_model=list[UserOut])
 def operators() -> list[UserOut]:
-    """The picker on the sign-in screen. Workers only."""
+    """
+    Active scanning accounts. Workers and supervisors only.
+
+    This fed the old tap-to-sign-in picker, which is gone — sign-in is by
+    username and password now. The endpoint is kept because a handset still
+    running the previous APK calls it on every launch, and because it is the
+    cheapest way to check from a phone that the host has accounts at all.
+    """
     with cursor() as cur:
         cur.execute(
             """SELECT u.id, u.username, u.display_name, r.code AS role
@@ -102,12 +125,23 @@ class ChecklistOut(BaseModel):
 
 
 @router.get("/checklists", response_model=list[ChecklistOut])
-def checklists(stage: str | None = None) -> list[ChecklistOut]:
+def checklists(stage: str | None = None,
+               operator_id: int | None = None) -> list[ChecklistOut]:
     """
     Open checklists on active shipments — what the operator chooses from.
 
     Closed checklists are excluded here rather than greyed out on the device.
-    A checklist that can be selected but not used is a support call.
+    A checklist that can be selected but not used is a support call. The same
+    reasoning now applies to assignment: when the phone names its operator,
+    only shipments that operator is assigned to come back, so the list never
+    offers work the scan endpoint would refuse.
+
+    `operator_id` is optional so an older app build still gets a list rather
+    than an error; the scan endpoint enforces the rule in either case.
+
+    A shipment nobody has been assigned to is shown to everyone, matching
+    main.assert_assigned. The two rules have to agree: a shipment hidden here
+    but accepted there is confusing, and the reverse is a dead end.
     """
     if stage is not None and stage not in ("S1", "S5", "S6"):
         raise HTTPException(422, "stage must be S1, S5 or S6")
@@ -126,7 +160,14 @@ def checklists(stage: str | None = None) -> list[ChecklistOut]:
                JOIN colour co         ON co.id = c.colour_id
                WHERE c.closed_at IS NULL AND s.status = 'active'
                  AND (%s::text IS NULL OR c.stage::text = %s::text)
-               ORDER BY c.stage, c.opened_at DESC""", (stage, stage))
+                 AND (%s::int IS NULL
+                      OR EXISTS (SELECT 1 FROM shipment_operator so
+                                  WHERE so.shipment_id = s.id
+                                    AND so.user_id = %s::int)
+                      OR NOT EXISTS (SELECT 1 FROM shipment_operator so
+                                      WHERE so.shipment_id = s.id))
+               ORDER BY c.stage, c.opened_at DESC""",
+            (stage, stage, operator_id, operator_id))
         return [ChecklistOut(**r) for r in cur.fetchall()]
 
 

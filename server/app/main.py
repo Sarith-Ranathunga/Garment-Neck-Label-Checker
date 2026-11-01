@@ -140,6 +140,36 @@ def checklist_context(checklist_id: int) -> dict:
     return ctx
 
 
+def assert_assigned(operator_id: int, shipment_id: int) -> None:
+    """
+    Refuse a scan from an operator who is not assigned to this shipment.
+
+    The assignment is set on the supervisor interface (Users → "Who may scan
+    which shipment"). It is checked here rather than only on the device
+    because the device list is advisory: a phone holding a cached checklist
+    from yesterday's shipment would otherwise keep posting scans against it,
+    and those scans would land in the counts for a line the operator is not
+    on. That corrupts the per-operator figures §5.7 reports.
+
+    A shipment with no assignment rows at all is treated as open to everyone.
+    Without that, upgrading an existing deployment would stop every line
+    until a supervisor had ticked boxes, and a control that halts packing on
+    the morning it is installed gets switched off (DP3).
+    """
+    with cursor() as cur:
+        cur.execute(
+            """SELECT EXISTS (SELECT 1 FROM shipment_operator
+                               WHERE shipment_id = %s) AS restricted,
+                      EXISTS (SELECT 1 FROM shipment_operator
+                               WHERE shipment_id = %s
+                                 AND user_id = %s) AS allowed""",
+            (shipment_id, shipment_id, operator_id))
+        row = cur.fetchone()
+    if row["restricted"] and not row["allowed"]:
+        raise HTTPException(
+            403, "You are not assigned to this shipment. Ask your supervisor.")
+
+
 # ------------------------------------------------------------- endpoints ----
 
 _INDEX = Path(__file__).resolve().parents[1] / "templates" / "index.html"
@@ -179,6 +209,7 @@ async def scan(
     if req.checklist_id is None:
         raise HTTPException(400, "checklist_id is required")
     ctx = checklist_context(req.checklist_id)
+    assert_assigned(req.operator_id, ctx["shipment_id"])
     size_map = load_size_map(ctx["buyer_id"])
 
     # --- resolve the hangtag ------------------------------------------------

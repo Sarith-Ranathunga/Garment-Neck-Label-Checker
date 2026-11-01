@@ -1,0 +1,75 @@
+<resources>
+    <string name="app_name">Garment Neck Label Checker</string>
+    <string name="app_short">GNLC</string>
+
+    <!-- Sign in -->
+    <string name="sign_in">Sign in</string>
+    <string name="choose_operator">Who is scanning?</string>
+    <string name="server_not_set">Server address is not set. Open settings first.</string>
+    <string name="settings">Settings</string>
+    <string name="retry">Retry</string>
+
+    <!-- Settings -->
+    <string name="server_address">Server address</string>
+    <string name="server_hint">http://192.168.1.50:8000</string>
+    <string name="server_help">The address of the supervisor PC. Ask the supervisor for it; it is shown on the host\'s own screen.</string>
+    <string name="device_id">Device ID</string>
+    <string name="device_id_help">Written on the back of this phone. Used with the scan ID so a retry never counts twice.</string>
+    <string name="test_connection">Test connection</string>
+    <string name="save">Save</string>
+
+    <!-- Checklist -->
+    <string name="choose_checklist">Choose a checklist</string>
+    <string name="no_checklists">No checklists are open. The supervisor opens one from the host PC.</string>
+    <string name="queue_button">Queue</string>
+
+    <!-- Capture -->
+    <string name="scan_hangtag">Scan the hangtag barcode</string>
+    <string name="scan_hangtag_help">Hold the barcode inside the box.</string>
+    <string name="photograph_label">Photograph the neck label</string>
+    <string name="photograph_help">Fill the box with the label. Any way up is fine.</string>
+    <string name="capture">Capture</string>
+    <string name="next_garment">Next garment</string>
+    <string name="enter_manually">Enter the size by hand</string>
+    <string name="camera_needed">The camera permission is needed to read labels.</string>
+    <string name="grant">Grant</string>
+    <string name="need_help">Need help</string>
+
+    <!-- Verdicts -->
+    <string name="verdict_match">MATCH</string>
+    <string name="verdict_mismatch">MISMATCH</string>
+    <string name="verdict_no_read">NO READ</string>
+    <string name="verdict_out_of_context">WRONG GARMENT</string>
+    <string name="verdict_queued">QUEUED</string>
+    <string name="queued_explain">No network. The verdict is still pending — this garment has not been checked yet.</string>
+    <string name="set_aside">Set this garment aside.</string>
+
+    <!-- Manual entry -->
+    <string name="manual_entry">Enter the size</string>
+    <string name="manual_reason">Why? (optional)</string>
+    <string name="manual_confirm">Confirm</string>
+    <string name="bypass_warning">No scan was attempted. This is recorded as a bypass.</string>
+    <string name="fallback_note">Recorded against the failed read.</string>
+
+    <!-- Carton -->
+    <string name="carton">Carton</string>
+    <string name="carton_no">Carton number</string>
+    <string name="open_carton">Open carton</string>
+    <string name="close_carton">Close carton</string>
+    <string name="packed_count">Packed: %1$d</string>
+    <string name="net_weight">Net weight (kg)</string>
+    <string name="gross_weight">Gross weight (kg)</string>
+    <string name="weight_note">Read off the floor scale. The app does not measure weight.</string>
+    <string name="confirm_close">Close this carton?</string>
+    <string name="close_warning">Contents are frozen from the scans. This cannot be undone from the phone.</string>
+
+    <!-- Queue -->
+    <string name="queue_title">Scan queue</string>
+    <string name="queue_empty">Everything has been sent.</string>
+    <string name="sync_now">Send now</string>
+    <string name="pending_count">%1$d waiting to send</string>
+    <string name="late_mismatch">A queued scan came back as a MISMATCH. Carton %1$s may need reopening.</string>
+
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+</resources>
