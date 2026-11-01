@@ -1,0 +1,71 @@
+# Render blueprint — the cloud demonstration instance.
+#
+# ⚠️ This is NOT the deployment described in Chapter 4.
+#
+# The production deployment is docker-compose.yml on the supervisor PC, on the
+# factory LAN, with the encrypted USB backup. That is what satisfies the
+# resource objective: existing hardware, no capital purchase, no monthly cost.
+# This file exists so the system can be demonstrated from outside the factory,
+# where there is no supervisor PC to point a phone at.
+#
+# To deploy: Render dashboard -> New -> Blueprint -> pick this repository.
+
+databases:
+  - name: gnlc-db
+    databaseName: gnlc
+    user: gnlc
+    # Render creates this empty. Load it once from your own machine, using the
+    # database's EXTERNAL connection string:
+    #
+    #   psql "<EXTERNAL_URL>" -v ON_ERROR_STOP=1 -f db/schema.sql
+    #   psql "<EXTERNAL_URL>" -v ON_ERROR_STOP=1 -f db/seed_demo.sql
+    #   psql "<EXTERNAL_URL>" -v ON_ERROR_STOP=1 -f db/migration_002_users_and_assignment.sql
+    #
+    # schema.sql runs automatically only under Docker Compose, where Postgres
+    # executes /docker-entrypoint-initdb.d on an empty data directory. Render
+    # has no such hook, so the load is manual.
+
+services:
+  - type: web
+    name: gnlc
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    healthCheckPath: /health
+
+    # ⚠️ Do not drop below 2 GB of RAM.
+    #
+    # EasyOCR loads PyTorch and an English detection+recognition model. The
+    # service will build and start on a 512 MB instance and then be killed the
+    # first time a scan arrives, which looks like an intermittent fault rather
+    # than an out-of-memory condition. Check Render's current plan specs: the
+    # name below may map to a different amount of memory than when it was
+    # written.
+    plan: standard
+
+    envVars:
+      # Wired to the database above. Uses the INTERNAL connection string, so
+      # traffic stays inside Render and needs no SSL negotiation.
+      - key: GNLC_DATABASE_URL
+        fromDatabase:
+          name: gnlc-db
+          property: connectionString
+
+      - key: GNLC_IMAGE_DIR
+        value: /var/lib/gnlc/images
+      - key: GNLC_EXPORT_DIR
+        value: /var/lib/gnlc/exports
+
+      # The backup worker is not run here. Render takes its own database
+      # backups, and there is no USB drive to write to. GNLC_BACKUP_DIR is
+      # therefore left at its default and nothing reads it.
+
+    # Render's container filesystem is wiped on every deploy and every restart.
+    # Without a disk, the retained evidence images — the no-reads and the
+    # mismatches, the ones that answer a question later — would disappear each
+    # time you push. A disk pins the service to one instance and rules out
+    # zero-downtime deploys, which is an acceptable trade for a demonstration.
+    disk:
+      name: gnlc-data
+      mountPath: /var/lib/gnlc
+      sizeGB: 1
